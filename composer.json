@@ -1,0 +1,28 @@
+{
+    "name": "phpbbservices/filterbycountry",
+    "type": "phpbb-extension",
+    "description": "Allows admins to control access by the country code associated with the user's IP",
+    "homepage": "https://www.phpbbservices.com",
+    "version": "1.0.0-dev",
+    "time": "2019-05-28",
+    "license": "GPL-2.0-only",
+    "authors": [
+        {
+            "name": "Mark D. Hamill",
+            "email": "mark@phpbbservices.com",
+            "homepage": "https://www.phpbbservices.com",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": ">=5.4",
+        "composer/installers": "~1.0",
+        "geoip2/geoip2": "~2.0"
+    },
+    "extra": {
+        "display-name": "Filter by country",
+        "soft-require": {
+            "phpbb/phpbb": ">=3.2.0,<3.3.0@dev"
+        }
+    }
+}

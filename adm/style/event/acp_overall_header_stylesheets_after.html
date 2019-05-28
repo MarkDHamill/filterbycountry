@@ -1,0 +1,9 @@
+{% if S_INCLUDE_FBC_CSS %}
+{% if not definition.INCLUDED_FBCCSS %}
+{% DEFINE INCLUDED_FBCCCC = true %}
+<style>
+	#stats { width: auto; }
+	#stats tr:nth-child(odd) { background-color: #DCEBFE !important; }
+</style>
+{% endif %}
+{% endif %}

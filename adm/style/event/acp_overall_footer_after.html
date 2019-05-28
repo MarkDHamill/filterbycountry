@@ -1,0 +1,23 @@
+{% if S_INCLUDE_FBC_JS %}
+{% if not definition.INCLUDED_FBCJS %}
+{% DEFINE INCLUDED_FBCJS = true %}
+<script>
+	var countryCodes = "{{ COUNTRY_CODES }}";
+	var countryCodesArray = countryCodes.split(',');
+	$( document ).ready(function() {
+		// Mark options in the country code options selected if they were set previously
+		$("#phpbbservices_filterbycountry_country_codes option").each(function() {
+			if (countryCodesArray.indexOf($(this).val()) != -1) {
+				$(this).prop('selected', true);
+			};
+		});
+		// When reset button is pressed, this logic will unselect all country codes
+		$("#unselect_options").click(function() {
+			$("#phpbbservices_filterbycountry_country_codes option").each(function() {
+				$(this).prop('selected', false);
+			});
+		});
+	});
+</script>
+{% endif %}
+{% endif %}

@@ -1,0 +1,55 @@
+imports:
+    - { resource: parameters.yml }
+services:
+    phpbbservices.filterbycountry.listener:
+        class: phpbbservices\filterbycountry\event\main_listener
+        arguments:
+            - '@language'
+            - '@request'
+            - '%core.root_path%'
+            - '%core.php_ext%'
+            - '@config'
+            - '@log'
+            - '@user'
+            - '@config_text'
+            - '@phpbbservices.filterbycountry.common'
+            - '@dbal.conn'
+            - '%core.table_prefix%'
+        tags:
+            - { name: event.listener }
+    phpbbservices.filterbycountry.common:
+        class: phpbbservices\filterbycountry\core\common
+        arguments:
+            - '@language'
+            - '%core.root_path%'
+            - '@config'
+            - '@log'
+            - '@user'
+    phpbbservices.filterbycountry.controller.acp:
+        class: phpbbservices\filterbycountry\controller\acp_controller
+        arguments:
+            - '@config'
+            - '@language'
+            - '@log'
+            - '@request'
+            - '@template'
+            - '@user'
+            - '@config_text'
+            - '@phpbbservices.filterbycountry.common'
+            - '@dbal.conn'
+            - '%core.table_prefix%'
+    phpbbservices.filterbycountry.service:
+        class: phpbbservices\filterbycountry\service
+        arguments:
+            - '@user'
+            - '%phpbbservices.filterbycountry.tables.filterbycountry_table%'
+    phpbbservices.filterbycountry.cron.task.cron_task:
+        class: phpbbservices\filterbycountry\cron\task\update_country_database
+        arguments:
+            - '@config'
+            - '@phpbbservices.filterbycountry.common'
+            - '@log'
+        calls:
+            - [set_name, [cron.task.update_country_database]]
+        tags:
+            - { name: cron.task }
