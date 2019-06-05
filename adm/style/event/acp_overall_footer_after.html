@@ -1,7 +1,7 @@
 {% if S_INCLUDE_FBC_JS %}
 {% if not definition.INCLUDED_FBCJS %}
 {% DEFINE INCLUDED_FBCJS = true %}
-{% INCLUDEJS '@phpbbservices_selectivemassemails/jquery-ui-1.12.1.min.js' %}
+{% INCLUDEJS '@phpbbservices_filterbycountry/jquery-ui-1.12.1.min.js' %}
 <script>
 	var countryCodes = "{{ COUNTRY_CODES }}";
 	var countryCodesArray = countryCodes.split(',');
