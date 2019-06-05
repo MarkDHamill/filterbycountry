@@ -3,8 +3,8 @@
     "type": "phpbb-extension",
     "description": "Allows admins to control access by the country code associated with the user's IP",
     "homepage": "https://www.phpbbservices.com",
-    "version": "1.0.0-dev",
-    "time": "2019-05-28",
+    "version": "1.0.1-alpha",
+    "time": "2019-06-04",
     "license": "GPL-2.0-only",
     "authors": [
         {
@@ -23,6 +23,11 @@
         "display-name": "Filter by country",
         "soft-require": {
             "phpbb/phpbb": ">=3.2.0,<3.3.0@dev"
+        },
+        "version-check": {
+            "host": "www.phpbbservices.com",
+            "directory": "/other/filterbycountry/updatecheck/",
+            "filename": "3.2.json"
         }
     }
 }

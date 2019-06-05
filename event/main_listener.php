@@ -16,6 +16,7 @@ namespace phpbbservices\filterbycountry\event;
 
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use GeoIp2\Database\Reader;
+use phpbbservices\filterbycountry\constants\constants;
 
 /**
  * Filter by country Event listener.
@@ -47,15 +48,15 @@ class main_listener implements EventSubscriberInterface
 	 *
 	 * @param \phpbb\language\language 						$language        	Language object
 	 * @param \phpbb\request\request   						$request         	The request object
-	 * @param                          						$phpbb_root_path 	string				Relative path to phpBB root
-	 * @param                          						$php_ext         	string				PHP file suffix
+	 * @param string                   						$phpbb_root_path 	Relative path to phpBB root
+	 * @param string                   						$php_ext         	PHP file suffix
 	 * @param \phpbb\config\config     						$config          	The config
 	 * @param \phpbb\log\log           						$log             	Log object
 	 * @param \phpbb\user              						$user            	User object
 	 * @param \phpbb\config\db_text							$config_text		The config text
 	 * @param \phpbbservices\filterbycountry\core\common 	$helper				Extension's helper object
 	 * @param \phpbb\db\driver\factory 						$db 				The database factory object
-	 * @param $table_prefix 								string				Prefix for phpbb's database tables
+	 * @param string										$table_prefix 		Prefix for phpbb's database tables
 	 *
 	 */
 
@@ -142,16 +143,16 @@ class main_listener implements EventSubscriberInterface
 		// Get a list of country codes of interest and place in an array for easy processing
 		$country_codes = explode(',', $this->config_text->get('phpbbservices_filterbycountry_country_codes'));
 
-		if (count($country_codes) == 0)
+		if (empty($country_codes))
 		{
 			// User is always allowed in if no countries were selected by admin. Otherwise, the board is effectively disabled.
-			// We won't bother to save the access in the log the extension is effectively disabled.
+			// We won't bother to save the access in the log if the extension is effectively disabled.
 			return;
 		}
 
 		// Allow or restrict country codes?
-		$allow = (bool) $this->config['phpbbservices_filterbycountry_allow'] ? 1 : 0;    // If false, restrict
-		$ip_not_found_allow = (bool) $this->config['phpbbservices_filterbycountry_ip_not_found_allow'] ? 1 : 0;    // If false, restrict
+		$allow = $this->config['phpbbservices_filterbycountry_allow'] ? true : false;    // If false, restrict
+		$ip_not_found_allow = $this->config['phpbbservices_filterbycountry_ip_not_found_allow'] ? true : false;    // If false, restrict
 
 		include($this->phpbb_root_path . 'vendor/autoload.php');
 
@@ -160,13 +161,14 @@ class main_listener implements EventSubscriberInterface
 
 		$user_ip = $this->request->server('REMOTE_ADDR');    // Fetch the user's actual IP address.
 		//$user_ip = '128.101.101.101';	// For testing, United States IP
+		//	protected $db;
+		$user_ip = '128.101.101.101';	// For testing, United States IP
 		$exception = false;    // Triggered if there is no IP match
 		$error = false;        // Assume the best
 		try
 		{
 			$mmdb_record = $reader->country($user_ip);      // Fetch record from MaxMind's database. If not there, catch logic is executed.
 			$country_code = $mmdb_record->country->isoCode; // Contains 2-digit ISO country code, in uppercase
-			$country = $mmdb_record->country->name;        	// Text name of the country corresponding to the country code
 		}
 		catch (\Exception $e)
 		{
@@ -175,7 +177,6 @@ class main_listener implements EventSubscriberInterface
 				case 'AddressNotFoundException':           	// IP not found in the Maxmind Country database
 					$exception = true;
 					$country_code = '??';
-					$country = $this->language->lang('FBC_UNKNOWN');
 				break;
 				default:
 					$error = true;                          // Something highly unexpected happened
@@ -189,7 +190,7 @@ class main_listener implements EventSubscriberInterface
 			$this->log->add(LOG_CRITICAL, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_MAXMIND_ERROR');
 
 			// Some sort of major error has occurred using the MaxMind database. Database may be corrupt. Such
-			// an error will appear on the screen for all filtered users.
+			// an error will appear on the screen for all users.
 			@trigger_error($this->language->lang('ACP_FBC_MAXMIND_ERROR', E_USER_WARNING));
 		}
 
@@ -219,30 +220,33 @@ class main_listener implements EventSubscriberInterface
 			$this->save_access($country_code, $allow_ip);
 		}
 
-		$url = $this->request->server('REQUEST_URI');
-		if ($this->config['phpbbservices_filterbycountry_allow_out_of_country_logins'])
-		{
-			// In this condition, you can access the board if you are an active registered user and are already
-			// logged in. Inactive users and bots are not allowed in. You have to be already logged in to be
-			// annotated as a founder or normal user.
-			if (in_array($this->user->data['user_type'], array(USER_FOUNDER, USER_NORMAL)))
-			{
-				return;
-			}
-
-			// If not logged in, you are at least allowed to access the login page when this setting enabled
-			if (stristr($url, "ucp.$this->phpEx?mode=login"))
-			{
-				return;
-			}
-		}
-
 		//$allow_ip = false;	// Uncomment for easier testing
 
 		// This triggers the error letting the user know access is denied. They see forum headers and footers, and the error message.
 		// Any links clicked on should simply continue to deny access.
 		if (!$allow_ip)
 		{
+
+			$url = $this->request->server('REQUEST_URI');
+			if ($this->config['phpbbservices_filterbycountry_allow_out_of_country_logins'])
+			{
+				// In this condition, you can access the board if you are an active registered user and are already
+				// logged in, as evidenced by the user_type, which won't be set for normal users and founders unless
+				// you are already logged in. Inactive users and bots are not allowed in. You have to be already logged
+				// in to be annotated as a founder or normal user.
+				if (in_array($this->user->data['user_type'], array(USER_FOUNDER, USER_NORMAL)))
+				{
+					return;
+				}
+
+				// If not logged in, you are at least allowed to access the login page when this setting enabled
+				if (stristr($url, "ucp.$this->phpEx?mode=login"))
+				{
+					return;
+				}
+			}
+
+			$country = $this->helper->get_country_name($country_code);	// Text name of the country in the user's language.
 
 			// Log the unwanted access, if desired
 			if ($this->config['phpbbservices_filterbycountry_log_access_errors'])
@@ -253,11 +257,11 @@ class main_listener implements EventSubscriberInterface
 			// Not allowed to see board content, so present warning message. Provide a login link if allowed.
 			if ($this->config['phpbbservices_filterbycountry_allow_out_of_country_logins'])
 			{
-				@trigger_error($this->language->lang('FBC_DENY_ACCESS_LOGIN', $user_ip, $country, $this->phpbb_root_path . "ucp.$this->phpEx?mode=login"), E_USER_WARNING);
+				@trigger_error($this->language->lang('ACP_FBC_DENY_ACCESS_LOGIN', $user_ip, $country, $this->phpbb_root_path . "ucp.$this->phpEx?mode=login"), E_USER_WARNING);
 			}
 			else
 			{
-				@trigger_error($this->language->lang('FBC_DENY_ACCESS', $user_ip, $country), E_USER_WARNING);
+				@trigger_error($this->language->lang('ACP_FBC_DENY_ACCESS', $user_ip, $country), E_USER_WARNING);
 			}
 
 		}
@@ -269,12 +273,22 @@ class main_listener implements EventSubscriberInterface
 
 		// Avoid inserting a row in the phpbb_fbc_stats table if the primary key for the table already exists,
 		// as it will trigger an error.
+
+		// We need to use a database transaction to ensure counts don't inadvertently change.
+		$this->db->sql_transaction('begin');
+
 		$now = time();
-		$sql = 'SELECT allowed, not_allowed 
-				FROM ' . $this->table_prefix . "fbc_stats 
-				WHERE country_code = '" . $country_code . "' AND timestamp = " . $now;
+		$sql_ary = array(
+			'SELECT'	=> 'allowed, not_allowed',
+			'FROM'		=> array(
+				$this->table_prefix . constants::ACP_FBC_STATS_TABLE	=> 'fbc',
+			),
+			'WHERE'		=> "country_code = '" . $this->db->sql_escape($country_code) . "' AND timestamp = " . $now,
+		);
+		$sql = $this->db->sql_build_query('SELECT', $sql_ary);
 		$result = $this->db->sql_query($sql);
 		$rowset = $this->db->sql_fetchrowset($result);
+
 		if (empty($rowset))
 		{
 			// Typical case
@@ -304,18 +318,28 @@ class main_listener implements EventSubscriberInterface
 		// Update the database row if it exists, otherwise insert it
 		if ($row_found)
 		{
-			$sql = 'UPDATE ' . $this->table_prefix . 'fbc_stats 
-					SET allowed = ' . $allowed_value . ', not_allowed = ' . $not_allowed_value . " 
-					WHERE country_code = '" . $country_code . "' AND timestamp = " . $now;
+			$sql_ary = array(
+				'allowed'		=> (int) $allowed_value,
+				'not_allowed'	=> (int) $not_allowed_value,
+			);
+			$sql = 'UPDATE ' . $this->table_prefix . constants::ACP_FBC_STATS_TABLE . ' 
+				SET ' . $this->db->sql_build_array('UPDATE', $sql_ary) . "
+				WHERE country_code = '" . $this->db->sql_escape($country_code) . "' AND timestamp = " . $now;
 		}
 		else
 		{
-			$sql = 'INSERT INTO ' . $this->table_prefix . "fbc_stats (country_code, timestamp, allowed, not_allowed) 
-					VALUES ('" . $country_code . "', " . $now . ', ' . $allowed_value . ', ' . $not_allowed_value . ')';
+			$sql_ary = array(
+				'country_code'	=> $this->db->sql_escape($country_code),
+				'timestamp'		=> $now,
+				'allowed'		=> (int) $allowed_value,
+				'not_allowed'	=> (int) $not_allowed_value,
+			);
+			$sql = 'INSERT INTO ' . $this->table_prefix . constants::ACP_FBC_STATS_TABLE . ' ' . $this->db->sql_build_array('INSERT', $sql_ary);
 		}
 		$this->db->sql_query($sql);
 
-	}
+		$this->db->sql_transaction('commit');
 
+	}
 
 }

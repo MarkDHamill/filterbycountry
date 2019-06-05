@@ -27,7 +27,7 @@ class common
 	 * Constructor.
 	 *
 	 * @param \phpbb\language\language 	$language 			Language object
-	 * @param $phpbb_root_path			string				Relative path to phpBB root
+	 * @param string					$phpbb_root_path	Relative path to phpBB root
 	 * @param \phpbb\config\config 		$config 			The config
 	 * @param \phpbb\log\log 			$phpbb_log 			phpBB log object
 	 * @param \phpbb\user				$user				User object
@@ -139,15 +139,15 @@ class common
 
 		// Open source and destination to file pointers (in binary mode)
 		$gz = gzopen($database_gz_file_path,'rb');
-		$mmdb = fopen($database_tar_file_path, 'wb');
+		$tar = fopen($database_tar_file_path, 'wb');
 
 		// Keep writing the .tar.gz file until at the end of the input file
 		while (!gzeof($gz)) {
-			fwrite($mmdb, gzread($gz, 4096));
+			fwrite($tar, gzread($gz, 4096));
 		}
 
 		// Close files
-		fclose($mmdb);
+		fclose($tar);
 		gzclose($gz);
 
 		// Now, untar the tarball. It will create a directory in store/phpbbservices/filterbycountry. The directory
@@ -207,6 +207,28 @@ class common
 		// Note the date and time the database was last updated
 		$this->config->set('phpbbservices_filterbycountry_cron_task_last_gc', time());
 		return true;
+
+	}
+
+	public function get_country_name ($country_code)
+	{
+
+		// Gets the name of the country in the user's language. What's returned by MaxMind is the country name in English.
+
+		$dom = new \DOMDocument();
+		$dom->loadHTML($this->language->lang('ACP_FBC_OPTIONS'));
+		$xml_countries = $dom->getElementsByTagName('option');
+
+		// Find the country by parsing the language variable that contains the HTML option tags.
+		foreach ($xml_countries as $xml_country)
+		{
+			if ($xml_country->getAttribute('value') == $country_code)
+			{
+				return $xml_country->nodeValue;	// Returns the country's name in the user's language
+			}
+			next($xml_countries);
+		}
+		return $this->language->lang('FBC_UNKNOWN');
 
 	}
 

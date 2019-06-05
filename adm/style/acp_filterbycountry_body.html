@@ -10,9 +10,9 @@
 {% endif %}
 
 
-{% if S_SETTINGS %}
 <form id="phpbbservices_filterbycountry_acp" name="phpbbservices_filterbycountry_acp" method="post" action="{{ U_ACTION }}">
 	<fieldset>
+{% if S_SETTINGS %}
 		<legend>{{ lang('SETTINGS') }}</legend>
 		<dl>
 			<dt><label>{{ lang('ACP_FBC_ALLOW_RESTRICT') ~ lang('COLON') }}</label><br>{{ lang('ACP_FBC_ALLOW_RESTRICT_EXPLAIN') }}</dt>
@@ -48,17 +48,35 @@
 			<dd><label><input type="radio" class="radio" name="phpbbservices_filterbycountry_keep_statistics" value="1"{% if FBC_KEEP_STATISTICS %} checked="checked"{% endif %} /> {{ lang('YES') }}</label>
 				<label><input type="radio" class="radio" name="phpbbservices_filterbycountry_keep_statistics" value="0"{% if not FBC_KEEP_STATISTICS %} checked="checked"{% endif %} /> {{ lang('NO') }}</label></dd>
 		</dl>
-	</fieldset>
-	<fieldset class="submit-buttons">
-		<input class="button1" type="submit" id="submit" name="submit" value="{{ lang('SUBMIT') }}" />&nbsp;
-		{{ S_FORM_TOKEN }}
-	</fieldset>
-</form>
 {% else %}
+		<h2>{{ lang('ACP_FBC_CURRENT_RANGE') ~ lang('COLON') }} {{ CURRENT_RANGE }}</h2>
+		<br>
+	<label for="range">{{ lang('ACP_FBC_CHANGE_REPORT_RANGE') ~ lang('COLON') }}</label>
+	<select name="range" id="range" >
+		<option value="{{ S_ACP_FBC_NO_LIMIT_VALUE }}">{{ lang('ACP_FBC_NO_LIMIT') }}</option>
+		<option value="{{ S_ACP_FBC_LAST_QUARTER_VALUE }}">{{ lang('ACP_FBC_LAST_QUARTER') }}</option>
+		<option value="{{ S_ACP_FBC_LAST_MONTH_VALUE }}">{{ lang('ACP_FBC_LAST_MONTH') }}</option>
+		<option value="{{ S_ACP_FBC_LAST_TWO_WEEKS_VALUE }}">{{ lang('ACP_FBC_LAST_TWO_WEEKS') }}</option>
+		<option value="{{ S_ACP_FBC_LAST_WEEK_VALUE }}">{{ lang('ACP_FBC_LAST_WEEK') }}</option>
+		<option value="{{ S_ACP_FBC_LAST_DAY_VALUE }}">{{ lang('ACP_FBC_LAST_DAY') }}</option>
+		<option value="{{ S_ACP_FBC_LAST_12_HOURS_VALUE }}">{{ lang('ACP_FBC_LAST_12_HOURS') }}</option>
+		<option value="{{ S_ACP_FBC_LAST_6_HOURS_VALUE }}">{{ lang('ACP_FBC_LAST_6_HOURS') }}</option>
+		<option value="{{ S_ACP_FBC_LAST_3_HOURS_VALUE }}">{{ lang('ACP_FBC_LAST_3_HOURS') }}</option>
+		<option value="{{ S_ACP_FBC_LAST_1_HOURS_VALUE }}">{{ lang('ACP_FBC_LAST_1_HOURS') }}</option>
+		<option value="{{ S_ACP_FBC_LAST_30_MINUTES_VALUE }}">{{ lang('ACP_FBC_LAST_30_MINUTES') }}</option>
+		<option value="{{ S_ACP_FBC_LAST_15_MINUTES_VALUE }}">{{ lang('ACP_FBC_LAST_15_MINUTES') }}</option>
+	</select>
+	<p>{{ lang('ACP_FBC_RANGE_EXPLAIN') }}</p>
+	<label for="date_start">{{ lang('ACP_FBC_DATES_BEGINNING') ~ lang('COLON') }}</label> <input id="date_start" name="date_start" type="text" placeholder="YYYY-MM-DD" size="10" maxlength="10" readonly> <label for="date_end">{{ lang('ACP_FBC_DATES_ENDING') ~ lang('COLON') }}</label> <input id="date_end" name="date_end" type="text" placeholder="YYYY-MM-DD" size="10" maxlength="10" readonly><br>
+	<p>{{ lang('ACP_FBC_OVERRIDE') }}</p>
+	<hr>
+
 	<table id="stats">
 		<thead>
 			<tr>
-				<th>{{ lang('ACP_FBC_COUNTRY_NAME') }}</th><th>{{ lang('ACP_FBC_ALLOWED') }}</th><th>{{ lang('ACP_FBC_RESTRICTED') }}</th>
+				<th>{{ lang('ACP_FBC_COUNTRY_NAME') }}<br><a href="{{ U_FBC_COUNTRY_A_Z }}"><span class="fa fa-caret-up fa-2x" style="color:white;" title="{{ lang('ACP_FBC_COUNTRY_A_Z') }}"></span></a> &nbsp;<a href="{{ U_FBC_COUNTRY_Z_A }}"><span class="fa fa-caret-down fa-2x" style="color:white;" title="{{ lang('ACP_FBC_COUNTRY_Z_A') }}"></span></a></th>
+				<th class="statcolumn">{{ lang('ACP_FBC_ALLOWED') }}<br><a href="{{ U_FBC_COUNTRY_ALLOWED_ASC }}"><span class="fa fa-caret-up fa-2x" style="color:white;" title="{{ lang('ACP_FBC_COUNTRY_ALLOWED_ASC') }}"></span></a> &nbsp;<a href="{{ U_FBC_COUNTRY_ALLOWED_DESC }}"><span class="fa fa-caret-down fa-2x" style="color:white;" title="{{ lang('ACP_FBC_COUNTRY_ALLOWED_DESC') }}"></span></a></th>
+				<th class="statcolumn">{{ lang('ACP_FBC_RESTRICTED') }}<br><a href="{{ U_FBC_COUNTRY_RESTRICTED_ASC }}"><span class="fa fa-caret-up fa-2x" style="color:white;" title="{{ lang('ACP_FBC_COUNTRY_RESTRICTED_ASC') }}"></span></a> &nbsp;<a href="{{ U_FBC_COUNTRY_RESTRICTED_DESC }}"><span class="fa fa-caret-down fa-2x" style="color:white;" title="{{ lang('ACP_FBC_COUNTRY_RESTRICTED_DESC') }}"></span></a></th>
 			</tr>
 		</thead>
 		<tbody>
@@ -70,5 +88,11 @@
 		</tbody>
 	</table>
 {% endif %}
+	</fieldset>
+	<fieldset class="submit-buttons">
+		<input class="button1" type="submit" id="submit" name="submit" value="{{ lang('SUBMIT') }}" />&nbsp;
+		{{ S_FORM_TOKEN }}
+	</fieldset>
+</form>
 
 {% include 'overall_footer.html' %}

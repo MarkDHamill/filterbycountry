@@ -10,6 +10,8 @@
 
 namespace phpbbservices\filterbycountry\controller;
 
+use phpbbservices\filterbycountry\constants\constants;
+
 /**
  * Filter by country ACP controller.
  */
@@ -22,6 +24,8 @@ class acp_controller
 	protected $helper;
 	protected $language;
 	protected $log;
+	protected $phpbb_root_path;
+	protected $phpEx;
 	protected $request;
 	protected $table_prefix;
 	protected $template;
@@ -31,18 +35,20 @@ class acp_controller
 	/**
 	 * Constructor.
 	 *
-	 * @param \phpbb\config\config							$config			Config object
-	 * @param \phpbb\language\language						$language		Language object
-	 * @param \phpbb\log\log								$log			Log object
-	 * @param \phpbb\request\request						$request		Request object
-	 * @param \phpbb\template\template						$template		Template object
-	 * @param \phpbb\user									$user			User object
-	 * @param \phpbb\config\db_text							$config_text	The config text
-	 * @param \phpbbservices\filterbycountry\core\common 	$helper			Extension's helper object
-	 * @param \phpbb\db\driver\factory 						$db 			The database factory object
-	 * @param $table_prefix 								string				Prefix for phpbb's database tables
+	 * @param \phpbb\config\config							$config				Config object
+	 * @param \phpbb\language\language						$language			Language object
+	 * @param \phpbb\log\log								$log				Log object
+	 * @param \phpbb\request\request						$request			Request object
+	 * @param \phpbb\template\template						$template			Template object
+	 * @param \phpbb\user									$user				User object
+	 * @param \phpbb\config\db_text							$config_text		The config text
+	 * @param \phpbbservices\filterbycountry\core\common 	$helper				Extension's helper object
+	 * @param \phpbb\db\driver\factory 						$db 				The database factory object
+	 * @param string										$table_prefix 		Prefix for phpbb's database tables
+	 * @param string										$phpbb_root_path	Relative path to phpBB root
+	 * @param string                   						$php_ext         	PHP file suffix
 	 */
-	public function __construct(\phpbb\config\config $config, \phpbb\language\language $language, \phpbb\log\log $log, \phpbb\request\request $request, \phpbb\template\template $template, \phpbb\user $user, \phpbb\config\db_text $config_text, \phpbbservices\filterbycountry\core\common $helper, \phpbb\db\driver\factory $db, $table_prefix)
+	public function __construct(\phpbb\config\config $config, \phpbb\language\language $language, \phpbb\log\log $log, \phpbb\request\request $request, \phpbb\template\template $template, \phpbb\user $user, \phpbb\config\db_text $config_text, \phpbbservices\filterbycountry\core\common $helper, \phpbb\db\driver\factory $db, $table_prefix, $phpbb_root_path, $php_ext)
 	{
 
 		$this->config	= $config;
@@ -52,6 +58,8 @@ class acp_controller
 		$this->language	= $language;
 		$this->log		= $log;
 		$this->request	= $request;
+		$this->phpbb_root_path = $phpbb_root_path;
+		$this->phpEx 	= $php_ext;
 		$this->table_prefix = $table_prefix;
 		$this->template	= $template;
 		$this->user		= $user;
@@ -66,7 +74,6 @@ class acp_controller
 	public function display_options()
 	{
 
-		// Add our common language file
 		$this->language->add_lang('common', 'phpbbservices/filterbycountry');
 
 		// Create a form key for preventing CSRF attacks
@@ -125,7 +132,7 @@ class acp_controller
 					else
 					{
 						// Remove all statistics if $save_statistics is false
-						$sql = 'DELETE FROM ' . $this->table_prefix . 'fbc_stats';
+						$sql = 'DELETE FROM ' . $this->table_prefix . constants::ACP_FBC_STATS_TABLE;
 						$this->db->sql_query($sql);
 
 						// Also, reset the statistics start date
@@ -135,11 +142,11 @@ class acp_controller
 					// Save any selected country codes to the database. To save space they will be saved as a string in the phpbb_config_text table. Since there are hundreds of
 					// country codes, the phpbb_config_text table is used since we may need more than 254 characters stored.
 					$country_codes = $this->request->variable('phpbbservices_filterbycountry_country_codes', array('' => ''));
-					$country_codes_str = (count($country_codes) > 0) ? implode(',', $country_codes) : '';
+					$country_codes_str = (!empty($country_codes)) ? implode(',', $country_codes) : '';
 					$this->config_text->set('phpbbservices_filterbycountry_country_codes', $country_codes_str);
 
 					// Add option settings change action to the admin log
-					$this->log->add('admin', $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FILTERBYCOUNTRY_SETTINGS');
+					$this->log->add('admin', $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_FILTERBYCOUNTRY_SETTINGS');
 
 					// Option settings have been updated and logged
 					// Confirm this to the user and provide link back to previous page
@@ -175,14 +182,99 @@ class acp_controller
 		}
 		else if ($mode == 'stats')
 		{
+
 			if ((bool) $this->config['phpbbservices_filterbycountry_keep_statistics'])
 			{
+
+				// Get time limit controls
+				$range = $this->request->variable('range', constants::ACP_FBC_NO_LIMIT_VALUE);
+				$date_start = $this->request->variable('date_start', ''); // Format: yyyy-mm-dd
+				$date_end = $this->request->variable('date_end', ''); // Format: yyyy-mm-dd
+
+				if ($date_start != '' && $date_end != '')
+				{
+					// Since $date_end will render a timestamp for midnight (00:00:00) let's take it to the end of the day (23:59:59)
+					$date_end_ts = (int) (strtotime($date_end) + (24 * 60 * 60) - 1);
+					$sql_where = ' WHERE timestamp >= ' . strtotime($date_start) . ' AND timestamp <= ' . $date_end_ts;
+					$text_range = $this->language->lang('ACP_FBC_FROM') . $date_start . $this->language->lang('ACP_FBC_TO') . $date_end;
+				}
+				else
+				{
+					$now = time();
+					switch ($range)
+					{
+
+						case constants::ACP_FBC_NO_LIMIT_VALUE:
+						default:
+							$sql_where = '';
+							$text_range = $this->language->lang('ACP_FBC_NO_LIMIT');
+						break;
+
+						case constants::ACP_FBC_LAST_QUARTER_VALUE:
+							$sql_where = ' WHERE timestamp >= ' . (int) ($now - (90 * 24 * 60 * 60));
+							$text_range = $this->language->lang('ACP_FBC_LAST_QUARTER');
+						break;
+
+						case constants::ACP_FBC_LAST_MONTH_VALUE:
+							$sql_where = ' WHERE timestamp >= ' . (int) ($now - (30 * 24 * 60 * 60));
+							$text_range = $this->language->lang('ACP_FBC_LAST_MONTH');
+						break;
+
+						case constants::ACP_FBC_LAST_TWO_WEEKS_VALUE:
+							$sql_where = ' WHERE timestamp >= ' . (int) ($now - (14 * 24 * 60 * 60));
+							$text_range = $this->language->lang('ACP_FBC_LAST_TWO_WEEKS');
+						break;
+
+						case constants::ACP_FBC_LAST_WEEK_VALUE:
+							$sql_where = ' WHERE timestamp >= ' . (int) ($now - (7 * 24 * 60 * 60));
+							$text_range = $this->language->lang('ACP_FBC_LAST_WEEK');
+						break;
+
+						case constants::ACP_FBC_LAST_DAY_VALUE:
+							$sql_where = ' WHERE timestamp >= ' . (int) ($now - (24 * 60 * 60));
+							$text_range = $this->language->lang('ACP_FBC_LAST_DAY');
+						break;
+
+						case constants::ACP_FBC_LAST_12_HOURS_VALUE:
+							$sql_where = ' WHERE timestamp >= ' . (int) ($now - (12 * 60 * 60));
+							$text_range = $this->language->lang('ACP_FBC_LAST_12_HOURS');
+						break;
+
+						case constants::ACP_FBC_LAST_6_HOURS_VALUE:
+							$sql_where = ' WHERE timestamp >= ' . (int) ($now - (6 * 60 * 60));
+							$text_range = $this->language->lang('ACP_FBC_LAST_6_HOURS');
+						break;
+
+						case constants::ACP_FBC_LAST_3_HOURS_VALUE:
+							$sql_where = ' WHERE timestamp >= ' . (int) ($now - (3 * 60 * 60));
+							$text_range = $this->language->lang('ACP_FBC_LAST_3_HOURS');
+						break;
+
+						case constants::ACP_FBC_LAST_1_HOURS_VALUE:
+							$sql_where = ' WHERE timestamp >= ' . (int) ($now - (60 * 60));
+							$text_range = $this->language->lang('ACP_FBC_LAST_1_HOURS');
+						break;
+
+						case constants::ACP_FBC_LAST_30_MINUTES_VALUE:
+							$sql_where = ' WHERE timestamp >= ' . (int) ($now - (30 * 60));
+							$text_range = $this->language->lang('ACP_FBC_LAST_30_MINUTES');
+						break;
+
+						case constants::ACP_FBC_LAST_15_MINUTES_VALUE:
+							$sql_where = ' WHERE timestamp >= ' . (int) ($now - (15 * 60));
+							$text_range = $this->language->lang('ACP_FBC_LAST_15_MINUTES');
+						break;
+
+					}
+				}
+
 
 				// Get distinct country codes in the table. We only want to fetch statistics for
 				// countries that have actually garnered hits.
 				$distinct_countries = array();
 				$sql = 'SELECT DISTINCT country_code 
-					FROM ' . $this->table_prefix . 'fbc_stats 
+					FROM ' . $this->table_prefix . constants::ACP_FBC_STATS_TABLE .
+					$sql_where . '
 					ORDER BY country_code';
 				$result = $this->db->sql_query($sql);
 				$rowset = $this->db->sql_fetchrowset($result);
@@ -197,7 +289,7 @@ class acp_controller
 				{
 					// To present a report by country, we need to put the information in tabular form. Since country names
 					// could vary based on language, we'll parse the language string ACP_FBC_OPTIONS for country codes and
-					// country names.
+					// country names, which will be in the user's language.
 
 					$dom = new \DOMDocument();
 					$dom->loadHTML($this->language->lang('ACP_FBC_OPTIONS'));
@@ -205,7 +297,7 @@ class acp_controller
 
 					// Add unknown at the top of the countries array
 					$countries = array();
-					$countries['??'] = $this->language->lang('FBC_UNKNOWN');
+					$countries['??'] = $this->language->lang('ACP_FBC_UNKNOWN');
 
 					foreach ($xml_countries as $xml_country)
 					{
@@ -214,41 +306,115 @@ class acp_controller
 						next($countries);
 					}
 
-					// Now add all countries to the report table that exist in the table.
-					foreach ($distinct_countries as $distinct_country)
+					// Get allowed and not allowed page requests for each country in the phpbb_fbc_stats table
+					$sql = 'SELECT country_code, sum(allowed) as allowed_count, sum(not_allowed) as not_allowed_count
+						FROM ' . $this->table_prefix . constants::ACP_FBC_STATS_TABLE .
+						$sql_where . '
+						GROUP BY country_code';
+					$result = $this->db->sql_query($sql);
+					$rowset = $this->db->sql_fetchrowset($result);
+
+					// Add to $rowset a column representing the textual country name, in the user's language
+					for ($i=0; $i<count($rowset); $i++)
 					{
+						$rowset[$i]['country_name'] = $countries[$rowset[$i]['country_code']];
+					}
 
-						// Get allowed and not allowed page requests for country
-						$sql = 'SELECT sum(allowed) AS allowed_count, sum(not_allowed) AS not_allowed_count
-							FROM ' . $this->table_prefix . "fbc_stats 
-							WHERE country_code = '" . $distinct_country . "'";
+					// The $rowset array must be sorted outside of SQL because the country name is localized and is not stored in the database
+					$sort_by = substr($this->request->variable('sort', 'ca'),0,1);	// c = country name, a = allowed, r = restricted
+					$sort_direction = substr($this->request->variable('sort', 'ca'),1,1); // a = ascending, d = descending
+					$sort_constant = ($sort_direction == 'a') ? SORT_ASC : SORT_DESC;
 
-						$result = $this->db->sql_query($sql);
-						$row = $this->db->sql_fetchrow($result);
+					switch ($sort_by)
+					{
+						case 'c':
+						default:
+							foreach ($rowset as $key => $row)
+							{
+								$country_name[$key] = $row['country_name'];
+							}
+							array_multisort($country_name, $sort_constant, SORT_STRING, $rowset);
+						break;
+
+						case 'a':
+							foreach ($rowset as $key => $row)
+							{
+								$allowed_count[$key] = $row['allowed_count'];
+								$country_name[$key] = $row['country_name'];
+							}
+							array_multisort($allowed_count, $sort_constant, SORT_NUMERIC, $country_name, SORT_ASC, $rowset);
+						break;
+
+						case 'r':
+							foreach ($rowset as $key => $row)
+							{
+								$not_allowed_count[$key] = $row['not_allowed_count'];
+								$country_name[$key] = $row['country_name'];
+							}
+							array_multisort($not_allowed_count, $sort_constant, SORT_NUMERIC, $country_name, SORT_ASC, $rowset);
+						break;
+					}
+
+					// Now add all countries to the report table that exist in the table.
+					foreach ($rowset as $row)
+					{
 
 						$allowed_count = (int) $row['allowed_count'];
 						$not_allowed_count = (int) $row['not_allowed_count'];
-						$this->db->sql_freeresult($result);
 
 						// Create a row in the report table
 						$this->template->assign_block_vars('countries', array(
-							'TEXT'        	=> $countries[$distinct_country],
+							'TEXT'        	=> $countries[$row['country_code']],
 							'ALLOWED'		=> $allowed_count,
 							'RESTRICTED'	=> $not_allowed_count,
 						));
 					}
+					$this->db->sql_freeresult($result);
 
 					// Other template variables used by this page
 					$this->template->assign_vars(array(
+
+						'CURRENT_RANGE'						=> $text_range,
+
 						'L_ACP_FBC_TITLE'					=> $this->language->lang('ACP_FBC_STATS_TITLE'),
 						'L_ACP_FBC_TITLE_EXPLAIN'			=> $this->language->lang('ACP_FBC_STATS_TITLE_EXPLAIN', date($this->user->data['user_dateformat'], $this->config['phpbbservices_filterbycountry_statistics_start_date'])),
+
 						'S_INCLUDE_FBC_CSS'					=> true,
 						'S_SETTINGS'						=> false,
+
+						'S_ACP_FBC_LAST_QUARTER_VALUE'		=> constants::ACP_FBC_LAST_QUARTER_VALUE,
+						'S_ACP_FBC_LAST_MONTH_VALUE'		=> constants::ACP_FBC_LAST_MONTH_VALUE,
+						'S_ACP_FBC_LAST_TWO_WEEKS_VALUE'	=> constants::ACP_FBC_LAST_TWO_WEEKS_VALUE,
+						'S_ACP_FBC_LAST_WEEK_VALUE'			=> constants::ACP_FBC_LAST_WEEK_VALUE,
+						'S_ACP_FBC_LAST_DAY_VALUE'			=> constants::ACP_FBC_LAST_DAY_VALUE,
+						'S_ACP_FBC_LAST_12_HOURS_VALUE'		=> constants::ACP_FBC_LAST_12_HOURS_VALUE,
+						'S_ACP_FBC_LAST_6_HOURS_VALUE'		=> constants::ACP_FBC_LAST_6_HOURS_VALUE,
+						'S_ACP_FBC_LAST_3_HOURS_VALUE'		=> constants::ACP_FBC_LAST_3_HOURS_VALUE,
+						'S_ACP_FBC_LAST_1_HOURS_VALUE'		=> constants::ACP_FBC_LAST_1_HOURS_VALUE,
+						'S_ACP_FBC_LAST_30_MINUTES_VALUE'	=> constants::ACP_FBC_LAST_30_MINUTES_VALUE,
+						'S_ACP_FBC_LAST_15_MINUTES_VALUE'	=> constants::ACP_FBC_LAST_15_MINUTES_VALUE,
+						'S_ACP_FBC_NO_LIMIT_VALUE' 			=> constants::ACP_FBC_NO_LIMIT_VALUE,
+						'S_INCLUDE_FBC_JS'					=> true,
+
+						'U_ACTION' 							=> $this->u_action,
+						'U_FBC_COUNTRY_A_Z'					=> append_sid($this->phpbb_root_path . "adm/index.$this->phpEx?i=-phpbbservices-filterbycountry-acp-main_module&amp;mode=stats&amp;sort=ca"),
+						'U_FBC_COUNTRY_ALLOWED_ASC'			=> append_sid($this->phpbb_root_path . "adm/index.$this->phpEx?i=-phpbbservices-filterbycountry-acp-main_module&amp;mode=stats&amp;sort=aa"),
+						'U_FBC_COUNTRY_ALLOWED_DESC'		=> append_sid($this->phpbb_root_path . "adm/index.$this->phpEx?i=-phpbbservices-filterbycountry-acp-main_module&amp;mode=stats&amp;sort=az"),
+						'U_FBC_COUNTRY_RESTRICTED_ASC'		=> append_sid($this->phpbb_root_path . "adm/index.$this->phpEx?i=-phpbbservices-filterbycountry-acp-main_module&amp;mode=stats&amp;sort=ra"),
+						'U_FBC_COUNTRY_RESTRICTED_DESC'		=> append_sid($this->phpbb_root_path . "adm/index.$this->phpEx?i=-phpbbservices-filterbycountry-acp-main_module&amp;mode=stats&amp;sort=rz"),
+						'U_FBC_COUNTRY_Z_A'					=> append_sid($this->phpbb_root_path . "adm/index.$this->phpEx?i=-phpbbservices-filterbycountry-acp-main_module&amp;mode=stats&amp;sort=cz"),
 					));
 				}
 				else
 				{
-					trigger_error($this->language->lang('ACP_FBC_NO_STATISTICS_YET'));
+					if ($sql_where == '')
+					{
+						trigger_error($this->language->lang('ACP_FBC_NO_STATISTICS_YET'));
+					}
+					else
+					{
+						trigger_error($this->language->lang('ACP_FBC_NO_STATISTICS_FOR_RANGE'));
+					}
 				}
 
 			}

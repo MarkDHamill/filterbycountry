@@ -10,6 +10,8 @@
 
 namespace phpbbservices\filterbycountry\migrations;
 
+use phpbbservices\filterbycountry\constants\constants;
+
 class install_schema extends \phpbb\db\migration\migration
 {
 
@@ -27,7 +29,7 @@ class install_schema extends \phpbb\db\migration\migration
 		return array(
 
 			'add_tables'    => array(
-				$this->table_prefix . 'fbc_stats'        => array(
+				$this->table_prefix . constants::ACP_FBC_STATS_TABLE        => array(
 					'COLUMNS'       	=> array(
 						'country_code' 	=> array('VCHAR:2', ''),
 						'timestamp' 	=> array('TIMESTAMP', 0),
