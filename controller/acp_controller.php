@@ -268,7 +268,6 @@ class acp_controller
 					}
 				}
 
-
 				// Get distinct country codes in the table. We only want to fetch statistics for
 				// countries that have actually garnered hits.
 				$distinct_countries = array();
@@ -368,6 +367,7 @@ class acp_controller
 							'ALLOWED'		=> $allowed_count,
 							'RESTRICTED'	=> $not_allowed_count,
 						));
+
 					}
 					$this->db->sql_freeresult($result);
 

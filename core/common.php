@@ -113,7 +113,7 @@ class common
 
 		$ch = curl_init();
 		curl_setopt($ch, CURLOPT_URL, $maxmind_url);		// Fetch from here
-		curl_setopt($ch, CURLOPT_HEADER, 0);
+		curl_setopt($ch, CURLOPT_HEADER, 0);		// MaxMind doesn't need HTTP headers
 		curl_setopt($ch, CURLOPT_FILE, $fp);				// Write file here
 
 		$success = curl_exec($ch);		// Get the database and write to a file
