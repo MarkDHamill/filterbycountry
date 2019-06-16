@@ -20,11 +20,6 @@
 				<label><input type="radio" class="radio" name="phpbbservices_filterbycountry_allow" value="0"{% if not FBC_ALLOW_RESTRICT %} checked="checked"{% endif %} /> {{ lang('ACP_FBC_RESTRICT') }}</label></dd>
 		</dl>
 		<dl>
-			<dt><label>{{ lang('ACP_FBC_ALLOW_OUT_OF_COUNTRY_LOGINS') ~ lang('COLON') }}</label></dt>
-			<dd><label><input type="radio" class="radio" name="phpbbservices_filterbycountry_allow_out_of_country_logins" value="1"{% if FBC_ALLOW_OUT_OF_COUNTRY_LOGINS %} checked="checked"{% endif %} /> {{ lang('YES') }}</label>
-				<label><input type="radio" class="radio" name="phpbbservices_filterbycountry_allow_out_of_country_logins" value="0"{% if not FBC_ALLOW_OUT_OF_COUNTRY_LOGINS %} checked="checked"{% endif %} /> {{ lang('NO') }}</label></dd>
-		</dl>
-		<dl>
 			<dt><label for="phpbbservices_filterbycountry_country_codes">{{ lang('ACP_FBC_COUNTRIES') ~ lang('COLON') }}</label><br>{{ lang('ACP_FBC_COUNTRIES_EXPLAIN') }}</dt>
 			<dd>
 				<select id="phpbbservices_filterbycountry_country_codes" name="phpbbservices_filterbycountry_country_codes[]" size="10" multiple>
@@ -37,6 +32,11 @@
 			<dt><label>{{ lang('ACP_FBC_IP_NOT_FOUND') ~ lang('COLON') }}</label><br>{{ lang('ACP_FBC_IP_NOT_FOUND_EXPLAIN') }}</dt>
 			<dd><label><input type="radio" class="radio" name="phpbbservices_filterbycountry_ip_not_found_allow" value="1"{% if FBC_IP_NOT_FOUND_ALLOW_RESTRICT %} checked="checked"{% endif %} /> {{ lang('ACP_FBC_ALLOW') }}</label>
 				<label><input type="radio" class="radio" name="phpbbservices_filterbycountry_ip_not_found_allow" value="0"{% if not FBC_IP_NOT_FOUND_ALLOW_RESTRICT %} checked="checked"{% endif %} /> {{ lang('ACP_FBC_RESTRICT') }}</label></dd>
+		</dl>
+		<dl>
+			<dt><label>{{ lang('ACP_FBC_ALLOW_OUT_OF_COUNTRY_LOGINS') ~ lang('COLON') }}</label><br>{{ lang('ACP_FBC_ALLOW_OUT_OF_COUNTRY_LOGINS_EXPLAIN') }}</dt>
+			<dd><label><input type="radio" class="radio" name="phpbbservices_filterbycountry_allow_out_of_country_logins" value="1"{% if FBC_ALLOW_OUT_OF_COUNTRY_LOGINS %} checked="checked"{% endif %} /> {{ lang('YES') }}</label>
+				<label><input type="radio" class="radio" name="phpbbservices_filterbycountry_allow_out_of_country_logins" value="0"{% if not FBC_ALLOW_OUT_OF_COUNTRY_LOGINS %} checked="checked"{% endif %} /> {{ lang('NO') }}</label></dd>
 		</dl>
 		<dl>
 			<dt><label>{{ lang('ACP_FBC_LOG_ACCESS_ERRORS') ~ lang('COLON') }}</label><br>{{ lang('ACP_FBC_LOG_ACCESS_ERRORS_EXPLAIN') }}</dt>

@@ -1,0 +1,8 @@
+Subject: Serious error with MaxMind database used by Filter by country phpBB extension
+
+Hello,
+
+This is to notify you that a serious error occurred accessing or using the MaxMind free GeoLite2 database. This
+database is used by Filter by country extension installed on your board. Most likely the database is corrupted.
+To ensure your forum remains accessible, the extension is allowing all traffic to access your forum. The underlying
+problem must be fixed to filter traffic by country.

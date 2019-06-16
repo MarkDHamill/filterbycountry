@@ -161,8 +161,7 @@ class main_listener implements EventSubscriberInterface
 
 		$user_ip = $this->request->server('REMOTE_ADDR');    // Fetch the user's actual IP address.
 		//$user_ip = '128.101.101.101';	// For testing, United States IP
-		//	protected $db;
-		$user_ip = '128.101.101.101';	// For testing, United States IP
+		//$user_ip = '81.246.234.100'; // For testing, Belgian IP
 		$exception = false;    // Triggered if there is no IP match
 		$error = false;        // Assume the best
 		try
@@ -189,9 +188,44 @@ class main_listener implements EventSubscriberInterface
 			// Add a note to the error log; hopefully an admin will notice.
 			$this->log->add(LOG_CRITICAL, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_MAXMIND_ERROR');
 
-			// Some sort of major error has occurred using the MaxMind database. Database may be corrupt. Such
-			// an error will appear on the screen for all users.
-			@trigger_error($this->language->lang('ACP_FBC_MAXMIND_ERROR', E_USER_WARNING));
+			// Also, send an email because this is important, dammit!
+			if (!class_exists('messenger'))
+			{
+				include($this->phpbb_root_path . 'includes/functions_messenger.' . $this->phpEx);
+			}
+
+			$messenger = new \messenger(false);	// Don't use queue
+
+			// Send the email to all users with founder status
+			$sql_ary = array(
+				'SELECT'	=> 'user_email',
+				'FROM'		=> array(USERS_TABLE	=> 'u'),
+				'WHERE'		=> 'user_type = ' . USER_FOUNDER);
+			$sql = $this->db->sql_build_query('SELECT', $sql_ary);
+			$result = $this->db->sql_query($sql);
+			$rowset = $this->db->sql_fetchrowset($result);
+
+			foreach ($rowset as $row)
+			{
+				$messenger->to($row['user_email']);
+			}
+			$this->db->sql_freeresult($result);
+
+			// Set email header information
+			$messenger->from($this->config['board_email']);
+			$messenger->replyto($this->config['board_email']);
+
+			// Set and send the email content
+			$email_templates_path = $this->phpbb_root_path . 'ext/phpbbservices/filterbycountry/language/en/email/';	// Note: the email templates (except subscribe/unsubscribe templates not used here) are language independent, so it's okay to use British English as it is always supported and the subscribe/unsubscribe templates are not used here.
+			$messenger->template('serious_error', '', $email_templates_path);
+			$messenger->subject($this->language->lang('ACP_FBC_SERIOUS_MAXMIND_ERROR'));
+			$messenger->send(NOTIFY_EMAIL, true);
+
+			// Now also disable the extension. Since the extension depends on a third-party database working correctly,
+			// when it cannot be relied on, rather than have the whole forum down, it's better to disable the extension.
+			$sql = 'UPDATE ' . EXT_TABLE . " SET ext_active = 0 WHERE ext_name = 'phpbbservices/filterbycountry'";
+			$this->db->sql_query($sql);
+			return;
 		}
 
 		if (!$exception)
@@ -219,8 +253,6 @@ class main_listener implements EventSubscriberInterface
 		{
 			$this->save_access($country_code, $allow_ip);
 		}
-
-		//$allow_ip = false;	// Uncomment for easier testing
 
 		// This triggers the error letting the user know access is denied. They see forum headers and footers, and the error message.
 		// Any links clicked on should simply continue to deny access.
