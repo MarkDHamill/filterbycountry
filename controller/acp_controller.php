@@ -287,11 +287,12 @@ class acp_controller
 				if (count($distinct_countries) > 0)
 				{
 					// To present a report by country, we need to put the information in tabular form. Since country names
-					// could vary based on language, we'll parse the language string ACP_FBC_OPTIONS for country codes and
+					// could vary based on language, it's not viable to put them in a database (otherwise we'd have a ready
+					// option available for sorting). So we'll parse the language string ACP_FBC_OPTIONS for country codes and
 					// country names, which will be in the user's language.
 
 					$dom = new \DOMDocument();
-					$dom->loadHTML($this->language->lang('ACP_FBC_OPTIONS'));
+					$dom->loadHTML('<?xml encoding="utf-8" ?>' . $this->language->lang('ACP_FBC_OPTIONS')); // Encoding fix by EA117
 					$xml_countries = $dom->getElementsByTagName('option');
 
 					// Add unknown at the top of the countries array
@@ -306,7 +307,7 @@ class acp_controller
 					}
 
 					// Get allowed and not allowed page requests for each country in the phpbb_fbc_stats table
-					$sql = 'SELECT country_code, sum(allowed) as allowed_count, sum(not_allowed) as not_allowed_count
+					$sql = 'SELECT country_code, sum(allowed) AS allowed_count, sum(not_allowed) AS not_allowed_count
 						FROM ' . $this->table_prefix . constants::ACP_FBC_STATS_TABLE .
 						$sql_where . '
 						GROUP BY country_code';
@@ -319,10 +320,10 @@ class acp_controller
 						$rowset[$i]['country_name'] = $countries[$rowset[$i]['country_code']];
 					}
 
-					// The $rowset array must be sorted outside of SQL because the country name is localized and is not stored in the database
+					// The $rowset array must be ordered outside of SQL because the country name is localized and is not stored in the database
 					$sort_by = substr($this->request->variable('sort', 'ca'),0,1);	// c = country name, a = allowed, r = restricted
 					$sort_direction = substr($this->request->variable('sort', 'ca'),1,1); // a = ascending, d = descending
-					$sort_constant = ($sort_direction == 'a') ? SORT_ASC : SORT_DESC;
+					$sort_direction = ($sort_direction == 'a') ? SORT_ASC : SORT_DESC;
 
 					switch ($sort_by)
 					{
@@ -332,7 +333,7 @@ class acp_controller
 							{
 								$country_name[$key] = $row['country_name'];
 							}
-							array_multisort($country_name, $sort_constant, SORT_STRING, $rowset);
+							array_multisort($country_name, $sort_direction, SORT_STRING, $rowset);
 						break;
 
 						case 'a':
@@ -341,7 +342,7 @@ class acp_controller
 								$allowed_count[$key] = $row['allowed_count'];
 								$country_name[$key] = $row['country_name'];
 							}
-							array_multisort($allowed_count, $sort_constant, SORT_NUMERIC, $country_name, SORT_ASC, $rowset);
+							array_multisort($allowed_count, $sort_direction, SORT_NUMERIC, $country_name, SORT_ASC, $rowset);
 						break;
 
 						case 'r':
@@ -350,11 +351,11 @@ class acp_controller
 								$not_allowed_count[$key] = $row['not_allowed_count'];
 								$country_name[$key] = $row['country_name'];
 							}
-							array_multisort($not_allowed_count, $sort_constant, SORT_NUMERIC, $country_name, SORT_ASC, $rowset);
+							array_multisort($not_allowed_count, $sort_direction, SORT_NUMERIC, $country_name, SORT_ASC, $rowset);
 						break;
 					}
 
-					// Now add all countries to the report table that exist in the table.
+					// Now add all distinct countries to the report
 					foreach ($rowset as $row)
 					{
 
@@ -376,11 +377,7 @@ class acp_controller
 
 						'CURRENT_RANGE'						=> $text_range,
 
-						'L_ACP_FBC_TITLE'					=> $this->language->lang('ACP_FBC_STATS_TITLE'),
 						'L_ACP_FBC_TITLE_EXPLAIN'			=> $this->language->lang('ACP_FBC_STATS_TITLE_EXPLAIN', date($this->user->data['user_dateformat'], $this->config['phpbbservices_filterbycountry_statistics_start_date'])),
-
-						'S_INCLUDE_FBC_CSS'					=> true,
-						'S_SETTINGS'						=> false,
 
 						'S_ACP_FBC_LAST_QUARTER_VALUE'		=> constants::ACP_FBC_LAST_QUARTER_VALUE,
 						'S_ACP_FBC_LAST_MONTH_VALUE'		=> constants::ACP_FBC_LAST_MONTH_VALUE,
@@ -394,7 +391,9 @@ class acp_controller
 						'S_ACP_FBC_LAST_30_MINUTES_VALUE'	=> constants::ACP_FBC_LAST_30_MINUTES_VALUE,
 						'S_ACP_FBC_LAST_15_MINUTES_VALUE'	=> constants::ACP_FBC_LAST_15_MINUTES_VALUE,
 						'S_ACP_FBC_NO_LIMIT_VALUE' 			=> constants::ACP_FBC_NO_LIMIT_VALUE,
+						'S_INCLUDE_FBC_CSS'					=> true,
 						'S_INCLUDE_FBC_JS'					=> true,
+						'S_SETTINGS'						=> false,
 
 						'U_ACTION' 							=> $this->u_action,
 						'U_FBC_COUNTRY_A_Z'					=> append_sid($this->phpbb_root_path . "adm/index.$this->phpEx?i=-phpbbservices-filterbycountry-acp-main_module&amp;mode=stats&amp;sort=ca"),
@@ -409,10 +408,12 @@ class acp_controller
 				{
 					if ($sql_where == '')
 					{
+						// If no SQL where clause, no statistics have been collected yet
 						trigger_error($this->language->lang('ACP_FBC_NO_STATISTICS_YET'));
 					}
 					else
 					{
+						// If no results, there are none to report for the date range wanted
 						trigger_error($this->language->lang('ACP_FBC_NO_STATISTICS_FOR_RANGE'));
 					}
 				}
@@ -420,6 +421,7 @@ class acp_controller
 			}
 			else
 			{
+				// The option to collect statistics has not been enabled
 				trigger_error($this->language->lang('ACP_FBC_NO_STATISTICS'));
 			}
 		}

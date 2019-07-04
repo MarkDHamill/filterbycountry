@@ -60,7 +60,7 @@ $lang = array_merge($lang, array(
 	'ACP_FBC_DOWNLOAD_ERROR'			=> 'Could not download: %1$s',
 	'ACP_FBC_FROM'						=> 'from ',
 	'ACP_FBC_IP_NOT_FOUND'				=> 'Allow VPN services',
-	'ACP_FBC_IP_NOT_FOUND_EXPLAIN'		=> 'If a user’s IP addresses isn’t in the database, it’s most likely because it is associated with a virtual private network (VPN) service. Enabling this option will let in users using VPN services, but could also allow entry by spammers.',
+	'ACP_FBC_IP_NOT_FOUND_EXPLAIN'		=> 'If a user’s IP addresses isn’t in the database, it’s likely from a virtual private network (VPN) service. Enabling this option will let in users using VPN services, but could also let in some spammers.',
 	'ACP_FBC_KEEP_STATISTICS'			=> 'Keep statistics',
 	'ACP_FBC_KEEP_STATISTICS_EXPLAIN'	=> 'If yes, statistics are kept for the number of allowed and restricted page requests by country code. <em>Warning</em>: these statistics can use a lot of database space. <em>If you set this to no, all statistics are erased.</em>',
 	'ACP_FBC_LAST_1_HOURS'				=> 'In Last Hour',
@@ -338,6 +338,6 @@ $lang = array_merge($lang, array(
 	'ACP_FBC_SERIOUS_MAXMIND_ERROR'		=> 'Serious error with MaxMind database used by phpBB Filter by country extension',
 	'ACP_FBC_SETTING_SAVED'				=> 'Settings have been saved successfully!',
 	'ACP_FBC_TO'						=> ' to ',
-	'ACP_FBC_UNKNOWN'					=> 'Unknown',
+	'ACP_FBC_UNKNOWN'					=> 'VPN (unknown)',
 	'ACP_FBC_UNSELECT_ALL'				=> 'Unselect all country codes',
 ));

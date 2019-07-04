@@ -120,6 +120,7 @@ class main_listener implements EventSubscriberInterface
 	 * @event core.user_setup_after
 	 * @since 3.1.6-RC1
 	 */
+
 	public function filter_by_country($event)
 	{
 
@@ -150,6 +151,9 @@ class main_listener implements EventSubscriberInterface
 			return;
 		}
 
+		static $ip_stats_tracked = array();		// Tracks IP accesses written to the phpbb_fbc_stats table, so we only log an IP once for this moment. This approach supports multiuser access.
+		static $ip_errors_tracked = array();	// Tracks IP invalid accesses logged, so we only log an IP once for this moment. This approach supports multiuser access.
+
 		// Allow or restrict country codes?
 		$allow = $this->config['phpbbservices_filterbycountry_allow'] ? true : false;    // If false, restrict
 		$ip_not_found_allow = $this->config['phpbbservices_filterbycountry_ip_not_found_allow'] ? true : false;    // If false, restrict
@@ -162,6 +166,7 @@ class main_listener implements EventSubscriberInterface
 		$user_ip = $this->request->server('REMOTE_ADDR');    // Fetch the user's actual IP address.
 		//$user_ip = '128.101.101.101';	// For testing, United States IP
 		//$user_ip = '81.246.234.100'; // For testing, Belgian IP
+
 		$exception = false;    // Triggered if there is no IP match
 		$error = false;        // Assume the best
 		try
@@ -188,7 +193,7 @@ class main_listener implements EventSubscriberInterface
 			// Add a note to the error log; hopefully an admin will notice.
 			$this->log->add(LOG_CRITICAL, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_MAXMIND_ERROR');
 
-			// Also, send an email because this is important, dammit!
+			// Also, send an email because this is important!
 			if (!class_exists('messenger'))
 			{
 				include($this->phpbb_root_path . 'includes/functions_messenger.' . $this->phpEx);
@@ -248,10 +253,14 @@ class main_listener implements EventSubscriberInterface
 			$allow_ip = (bool) ($ip_not_found_allow || $user_ip == '127.0.0.1');
 		}
 
-		// Log the access to the phpbb_fbc_stats table, if so configured
+		// Log the access to the phpbb_fbc_stats table, if so configured. We only log access once.
 		if ($this->config['phpbbservices_filterbycountry_keep_statistics'])
 		{
-			$this->save_access($country_code, $allow_ip);
+			if (!in_array($user_ip, $ip_stats_tracked))
+			{
+				$ip_stats_tracked[] = $user_ip;    // In case of multiuser access, want to log access once only for each IP
+				$this->save_access($country_code, $allow_ip);
+			}
 		}
 
 		// This triggers the error letting the user know access is denied. They see forum headers and footers, and the error message.
@@ -262,7 +271,7 @@ class main_listener implements EventSubscriberInterface
 			$url = $this->request->server('REQUEST_URI');
 			if ($this->config['phpbbservices_filterbycountry_allow_out_of_country_logins'])
 			{
-				// In this condition, you can access the board if you are an active registered user and are already
+				// In this condition, you can access the board if you are an actively registered user and are already
 				// logged in, as evidenced by the user_type, which won't be set for normal users and founders unless
 				// you are already logged in. Inactive users and bots are not allowed in. You have to be already logged
 				// in to be annotated as a founder or normal user.
@@ -280,10 +289,14 @@ class main_listener implements EventSubscriberInterface
 
 			$country = $this->helper->get_country_name($country_code);	// Text name of the country in the user's language.
 
-			// Log the unwanted access, if desired
+			// Log the unwanted access, if desired, but only if the IP has not already been tracked.
 			if ($this->config['phpbbservices_filterbycountry_log_access_errors'])
 			{
-				$this->log->add(LOG_ADMIN, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_BAD_ACCESS', false, array($this->user->data['username'], $user_ip, $country));
+				if (!in_array($user_ip, $ip_errors_tracked))
+				{
+					$ip_errors_tracked[] = $user_ip;    // In case of multiuser access, want to log bad access just once only for each IP
+					$this->log->add(LOG_ADMIN, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_BAD_ACCESS', false, array($this->user->data['username'], $user_ip, $country));
+				}
 			}
 
 			// Not allowed to see board content, so present warning message. Provide a login link if allowed.
