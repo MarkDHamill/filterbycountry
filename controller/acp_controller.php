@@ -159,7 +159,11 @@ class acp_controller
 
 		// First test if the GeoLite2-Country-Country.mmdb database exists in /store/phpbbservices/filterbycountry directory.
 		// If it doesn't, the function will create the directory and populate it
-		$this->helper->download_maxmind();
+		$success = $this->helper->download_maxmind(false);
+		if (!$success)
+		{
+			trigger_error($this->language->lang('ACP_FBC_CREATE_DATABASE_ERROR'));
+		}
 
 		// Set output variables for display in the template
 		if ($mode == 'settings')
@@ -364,9 +368,11 @@ class acp_controller
 
 						// Create a row in the report table
 						$this->template->assign_block_vars('countries', array(
+							'FLAG'			=> '<img src="./../ext/phpbbservices/filterbycountry/flags/' . $row['country_code'] . '.png" alt="' . $countries[$row['country_code']]. '" title="' . $countries[$row['country_code']]. '">',
 							'TEXT'        	=> $countries[$row['country_code']],
 							'ALLOWED'		=> $allowed_count,
 							'RESTRICTED'	=> $not_allowed_count,
+							'S_SHOW_FLAG'	=> (file_exists('./../ext/phpbbservices/filterbycountry/flags/' . $row['country_code'] . '.png')) ? true : false,
 						));
 
 					}

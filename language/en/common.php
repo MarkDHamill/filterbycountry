@@ -52,6 +52,7 @@ $lang = array_merge($lang, array(
 	'ACP_FBC_COUNTRY_NAME'				=> 'Country name',
 	'ACP_FBC_COUNTRY_RESTRICTED_ASC'	=> 'Restricted page requests, least to greatest',
 	'ACP_FBC_COUNTRY_RESTRICTED_DESC'	=> 'Restricted page requests, greatest to least',
+	'ACP_FBC_CREATE_DATABASE_ERROR'		=> 'Unable to create the MaxMind country codes database. This may be due to insufficient permissions. The file permissions for the forum’s /store/phpbbservices folder should be set to publicly writeable (777 on Unix-based systems).',
 	'ACP_FBC_CURRENT_RANGE'				=> 'Range of statistics shown',
 	'ACP_FBC_DATES_BEGINNING'			=> 'Or pick an absolute range of dates beginning',
 	'ACP_FBC_DATES_ENDING'				=> 'and ending',

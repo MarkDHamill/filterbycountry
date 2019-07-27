@@ -74,15 +74,15 @@
 	<table id="stats">
 		<thead>
 			<tr>
-				<th>{{ lang('ACP_FBC_COUNTRY_NAME') }}<br><a href="{{ U_FBC_COUNTRY_A_Z }}"><span class="fa fa-caret-up fa-2x" style="color:white;" title="{{ lang('ACP_FBC_COUNTRY_A_Z') }}"></span></a> &nbsp;<a href="{{ U_FBC_COUNTRY_Z_A }}"><span class="fa fa-caret-down fa-2x" style="color:white;" title="{{ lang('ACP_FBC_COUNTRY_Z_A') }}"></span></a></th>
-				<th class="statcolumn">{{ lang('ACP_FBC_ALLOWED') }}<br><a href="{{ U_FBC_COUNTRY_ALLOWED_ASC }}"><span class="fa fa-caret-up fa-2x" style="color:white;" title="{{ lang('ACP_FBC_COUNTRY_ALLOWED_ASC') }}"></span></a> &nbsp;<a href="{{ U_FBC_COUNTRY_ALLOWED_DESC }}"><span class="fa fa-caret-down fa-2x" style="color:white;" title="{{ lang('ACP_FBC_COUNTRY_ALLOWED_DESC') }}"></span></a></th>
-				<th class="statcolumn">{{ lang('ACP_FBC_RESTRICTED') }}<br><a href="{{ U_FBC_COUNTRY_RESTRICTED_ASC }}"><span class="fa fa-caret-up fa-2x" style="color:white;" title="{{ lang('ACP_FBC_COUNTRY_RESTRICTED_ASC') }}"></span></a> &nbsp;<a href="{{ U_FBC_COUNTRY_RESTRICTED_DESC }}"><span class="fa fa-caret-down fa-2x" style="color:white;" title="{{ lang('ACP_FBC_COUNTRY_RESTRICTED_DESC') }}"></span></a></th>
+				<th id="country">{{ lang('ACP_FBC_COUNTRY_NAME') }}<br><a href="{{ U_FBC_COUNTRY_A_Z }}"><span class="fa fa-caret-up fa-2x" style="color:white;" title="{{ lang('ACP_FBC_COUNTRY_A_Z') }}"></span></a> &nbsp;<a href="{{ U_FBC_COUNTRY_Z_A }}"><span class="fa fa-caret-down fa-2x" style="color:white;" title="{{ lang('ACP_FBC_COUNTRY_Z_A') }}"></span></a></th>
+				<th id="allowed" class="statcolumn">{{ lang('ACP_FBC_ALLOWED') }}<br><a href="{{ U_FBC_COUNTRY_ALLOWED_ASC }}"><span class="fa fa-caret-up fa-2x" style="color:white;" title="{{ lang('ACP_FBC_COUNTRY_ALLOWED_ASC') }}"></span></a> &nbsp;<a href="{{ U_FBC_COUNTRY_ALLOWED_DESC }}"><span class="fa fa-caret-down fa-2x" style="color:white;" title="{{ lang('ACP_FBC_COUNTRY_ALLOWED_DESC') }}"></span></a></th>
+				<th id="restricted" class="statcolumn">{{ lang('ACP_FBC_RESTRICTED') }}<br><a href="{{ U_FBC_COUNTRY_RESTRICTED_ASC }}"><span class="fa fa-caret-up fa-2x" style="color:white;" title="{{ lang('ACP_FBC_COUNTRY_RESTRICTED_ASC') }}"></span></a> &nbsp;<a href="{{ U_FBC_COUNTRY_RESTRICTED_DESC }}"><span class="fa fa-caret-down fa-2x" style="color:white;" title="{{ lang('ACP_FBC_COUNTRY_RESTRICTED_DESC') }}"></span></a></th>
 			</tr>
 		</thead>
 		<tbody>
 		{% for country in countries %}
 			<tr>
-				<td>{{ country.TEXT }}</td><td style="text-align: center;">{{ country.ALLOWED }}</td><td style="text-align: center;">{{ country.RESTRICTED }}</td>
+				<td headers="country">{% if country.S_SHOW_FLAG %}{{ country.FLAG }} {% endif %}<span>{{ country.TEXT }}</span></td><td headers="allowed" class="center">{{ country.ALLOWED }}</td><td headers="restricted" class="center">{{ country.RESTRICTED }}</td>
 			</tr>
 		{% endfor %}
 		</tbody>

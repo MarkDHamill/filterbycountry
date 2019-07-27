@@ -49,7 +49,8 @@ class common
 		// Makes the store/phpbbservices/filterbycountry directory if needed, then fetches and uncompresses the MaxMind
 		// database if it does not exist. Any errors are written to the error log.
 		//
-		// Parameters: $update_database - if true, database is destroyed and recreated, done if called by a cron.
+		// Parameters:
+		//   $update_database - if true, database is destroyed and recreated, done if called by a cron
 		//
 		// Steps:
 		//
@@ -72,7 +73,13 @@ class common
 		if ($update_database)
 		{
 			// Blow the current database away, along with the folder filterbycountry
-			$this->rrmdir($extension_store_directory);
+			$success = $this->rrmdir($extension_store_directory);
+			if (!$success)
+			{
+				// Report error
+				$this->phpbb_log->add(LOG_CRITICAL, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_DELETE_ERROR', false, array($extension_store_directory));
+				return false;
+			}
 		}
 
 		if (!is_dir($extension_store_directory))
@@ -85,6 +92,22 @@ class common
 				$this->phpbb_log->add(LOG_CRITICAL, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_CREATE_DIRECTORY_ERROR', false, array($extension_store_directory));
 				return false;
 			}
+		}
+
+		// Do we have read permissions to the extension's store directory?
+		if (!is_readable($extension_store_directory ))
+		{
+			// Report error
+			$this->phpbb_log->add(LOG_CRITICAL, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_READ_FILE_ERROR', false, array($extension_store_directory));
+			return false;
+		}
+
+		// Do we have write permissions to the extension's store directory?
+		if (!is_writeable($extension_store_directory ))
+		{
+			// Report error
+			$this->phpbb_log->add(LOG_CRITICAL, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_WRITE_FILE_ERROR', false, array($extension_store_directory));
+			return false;
 		}
 
 		// Check to see if the MaxMind country database is already in the right place in the file system.
@@ -105,7 +128,7 @@ class common
 
 		// Since a copy of the database is not downloaded, fetch the database from maxmind.com using curl, which downloads a .tar.gz file
 		$fp = fopen($database_gz_file_path, 'w+');
-		if ($fp === false)
+		if (!$fp)
 		{
 			$this->phpbb_log->add(LOG_CRITICAL, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_FOPEN_ERROR', false, array($database_gz_file_path));
 			return false;
@@ -113,15 +136,20 @@ class common
 
 		$ch = curl_init();
 		curl_setopt($ch, CURLOPT_URL, $maxmind_url);		// Fetch from here
-		curl_setopt($ch, CURLOPT_HEADER, 0);		// MaxMind doesn't need HTTP headers
+		curl_setopt($ch, CURLOPT_HEADER, 0);		// MaxMind server doesn't need HTTP headers
 		curl_setopt($ch, CURLOPT_FILE, $fp);				// Write file here
 
 		$success = curl_exec($ch);		// Get the database and write to a file
+		if (!$success)
+		{
+			$this->phpbb_log->add(LOG_CRITICAL, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_FOPEN_ERROR', false, array($database_gz_file_path));
+			return false;
+		}
 
 		// Get the HTTP status code
 		$status_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
-		if ($success === false || (!($status_code == 200 || $status_code == 304)))	// 304 = unchanged
+		if (!($status_code == 200 || $status_code == 304))	// 304 = unchanged
 		{
 			$this->phpbb_log->add(LOG_CRITICAL, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_FOPEN_ERROR', false, array($database_gz_file_path));
 			return false;
@@ -137,8 +165,7 @@ class common
 			return false;
 		}
 
-		// Open source and destination to file pointers (in binary mode)
-		$gz = gzopen($database_gz_file_path,'rb');
+		// Open destination file (in binary mode)
 		$tar = fopen($database_tar_file_path, 'wb');
 
 		// Keep writing the .tar.gz file until at the end of the input file
@@ -192,11 +219,17 @@ class common
 					{
 						if (is_dir($extension_store_directory . '/' . $file))
 						{
-							$this->rrmdir($extension_store_directory . '/' . $file);
+							$success = $this->rrmdir($extension_store_directory . '/' . $file);
 						}
 						else
 						{
-							unlink($extension_store_directory . '/' . $file);
+							$success = unlink($extension_store_directory . '/' . $file);
+						}
+						if (!$success)
+						{
+							// Report error
+							$this->phpbb_log->add(LOG_CRITICAL, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_DELETE_ERROR', false, array($extension_store_directory . '/' . $file));
+							return false;
 						}
 					}
 				}
@@ -216,7 +249,7 @@ class common
 		// Gets the name of the country in the user's language. What's returned by MaxMind is the country name in English.
 
 		$dom = new \DOMDocument();
-		$dom->loadHTML($this->language->lang('ACP_FBC_OPTIONS'));
+		$dom->loadHTML('<?xml encoding="utf-8" ?>' . $this->language->lang('ACP_FBC_OPTIONS')); // Encoding fix by EA117
 		$xml_countries = $dom->getElementsByTagName('option');
 
 		// Find the country by parsing the language variable that contains the HTML option tags.
@@ -238,24 +271,35 @@ class common
 		// Recursively removes files in a directory
 		if (is_dir($dir))
 		{
-			$objects = scandir($dir);
-			foreach ($objects as $object)
+			$inodes = scandir($dir);
+			if (is_array($inodes))
 			{
-				if ($object != "." && $object != "..")
+				foreach ($inodes as $inode)
 				{
-					if (is_dir($dir . "/" . $object))
+					if ($inode != "." && $inode != "..")
 					{
-						rrmdir($dir . "/" . $object);
-
-					}
-					else
-					{
-						unlink($dir . "/" . $object);
+						if (is_dir($dir . "/" . $inode))
+						{
+							$success = rrmdir($dir . "/" . $inode);
+						}
+						else
+						{
+							$success = unlink($dir . "/" . $inode);
+						}
+						if (!$success)
+						{
+							return false;
+						}
 					}
 				}
+				rmdir($dir);
 			}
-			rmdir($dir);
+			else
+			{
+				return false;
+			}
 		}
+		return true;
 
 	}
 
