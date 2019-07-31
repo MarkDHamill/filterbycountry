@@ -173,6 +173,12 @@ class main_listener implements EventSubscriberInterface
 		{
 			$mmdb_record = $reader->country($user_ip);      // Fetch record from MaxMind's database. If not there, catch logic is executed.
 			$country_code = $mmdb_record->country->isoCode; // Contains 2-digit ISO country code, in uppercase
+			if (trim($country_code) == '')
+			{
+				// Force blank country codes to be treated as exceptions
+				$country_code = constants::ACP_FBC_COUNTRY_NOT_FOUND;
+				$exception = true;
+			}
 		}
 		catch (\Exception $e)
 		{
@@ -180,7 +186,7 @@ class main_listener implements EventSubscriberInterface
 			{
 				case 'AddressNotFoundException':           	// IP not found in the Maxmind Country database
 					$exception = true;
-					$country_code = '??';
+					$country_code = constants::ACP_FBC_COUNTRY_NOT_FOUND;
 				break;
 				default:
 					$error = true;                          // Something highly unexpected happened

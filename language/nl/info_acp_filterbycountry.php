@@ -46,10 +46,12 @@ $lang = array_merge($lang, array(
 	'LOG_ACP_FBC_BAD_ACCESS'				=> '<strong>"%1s" is de forumtoegang geweigerd voor IP %2s omdat land "%3s" geen toegang heeft tot het forum.',
 	'LOG_ACP_FBC_CREATE_DIRECTORY_ERROR'	=> '<strong>Kon de map %1$s niet maken. Dit kan te wijten zijn aan onvoldoende machtigingen. De bestandsrechten voor de map moeten worden ingesteld op openbaar beschrijfbaar (777 op Unix gebaseerde systemen).</strong>',
 	'LOG_ACP_FBC_DEBUG'						=> '<strong>%1s</strong>',
-	'LOG_ACP_FBC_FILTERBYCOUNTRY SETTINGS'	=> '<strong>Filter op landinstellingen bijgewerkt</strong>',
+	'LOG_ACP_FBC_DELETE_ERROR'				=> '<strong>Kan %1$s niet verwijderen. Dit kan te wijten zijn aan onvoldoende rechten. Volledige openbare schrijfrechten zijn vereist.</strong>',	
+	'LOG_ACP_FBC_FILTERBYCOUNTRY_SETTINGS'	=> '<strong>Filter op landinstellingen bijgewerkt</strong>',
 	'LOG_ACP_FBC_FOPEN_ERROR'				=> '<strong>Kon het bestand niet openen: %1$s</strong>',
 	'LOG_ACP_FBC_GZIP_OPEN_ERROR'			=> '<strong>Kon gzip bestand niet openen: %1$s</strong>',
 	'LOG_ACP_FBC_MAXMIND_ERROR'				=> '<strong>Een oproep naar de MaxMind landcode database leidde tot een fout. De database is waarschijnlijk corrupt.</strong>',
 	'LOG_ACP_FBC_READ_FILE_ERROR'			=> '<strong>Geen leesrechten voor bestand: %1$s</strong>',
 	'LOG_ACP_FBC_TARBALL_MOVE_ERROR'		=> '<strong>Kon bestand niet verplaatsen: %1$s</strong>',
+	'LOG_ACP_FBC_WRITE_FILE_ERROR'			=> '<strong>Geen schrijfrechten voor bestand: %1$s</strong>',	
 ));

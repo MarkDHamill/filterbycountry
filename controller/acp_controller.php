@@ -301,7 +301,7 @@ class acp_controller
 
 					// Add unknown at the top of the countries array
 					$countries = array();
-					$countries['??'] = $this->language->lang('ACP_FBC_UNKNOWN');
+					$countries[constants::ACP_FBC_COUNTRY_NOT_FOUND] = $this->language->lang('ACP_FBC_UNKNOWN');
 
 					foreach ($xml_countries as $xml_country)
 					{
@@ -367,12 +367,13 @@ class acp_controller
 						$not_allowed_count = (int) $row['not_allowed_count'];
 
 						// Create a row in the report table
+						$flag_path = './../ext/phpbbservices/filterbycountry/flags/' . strtolower($row['country_code']) . '.png';
 						$this->template->assign_block_vars('countries', array(
-							'FLAG'			=> '<img src="./../ext/phpbbservices/filterbycountry/flags/' . $row['country_code'] . '.png" alt="' . $countries[$row['country_code']]. '" title="' . $countries[$row['country_code']]. '">',
-							'TEXT'        	=> $countries[$row['country_code']],
 							'ALLOWED'		=> $allowed_count,
+							'FLAG'			=> '<img src="' . $flag_path. '" alt="' . $countries[$row['country_code']]. '" title="' . $countries[$row['country_code']]. '">',
 							'RESTRICTED'	=> $not_allowed_count,
-							'S_SHOW_FLAG'	=> (file_exists('./../ext/phpbbservices/filterbycountry/flags/' . $row['country_code'] . '.png')) ? true : false,
+							'S_SHOW_FLAG'	=> (file_exists($flag_path)) ? true : false,
+							'TEXT'        	=> $countries[$row['country_code']],
 						));
 
 					}

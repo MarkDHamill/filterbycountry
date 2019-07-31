@@ -12,6 +12,7 @@ namespace phpbbservices\filterbycountry\constants;
 
 class constants {
 
+	const ACP_FBC_COUNTRY_NOT_FOUND = '??';
 	const ACP_FBC_NO_LIMIT_VALUE = 1;
 	const ACP_FBC_LAST_QUARTER_VALUE = 2;
 	const ACP_FBC_LAST_MONTH_VALUE = 3;
