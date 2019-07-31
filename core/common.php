@@ -158,25 +158,6 @@ class common
 		curl_close($ch);
 		fclose($fp);
 
-		// Extract the .tar file from the .tar.gz file
-		$gz = gzopen($database_gz_file_path, 'rb');	// Open .gz file
-		if (!$gz) {
-			$this->phpbb_log->add(LOG_CRITICAL, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_GZIP_OPEN_ERROR', false, array($database_gz_file_path));
-			return false;
-		}
-
-		// Open destination file (in binary mode)
-		$tar = fopen($database_tar_file_path, 'wb');
-
-		// Keep writing the .tar.gz file until at the end of the input file
-		while (!gzeof($gz)) {
-			fwrite($tar, gzread($gz, 4096));
-		}
-
-		// Close files
-		fclose($tar);
-		gzclose($gz);
-
 		// Now, untar the tarball. It will create a directory in store/phpbbservices/filterbycountry. The directory
 		// name includes the date the tarball was created.
 		$p = new \PharData($database_gz_file_path);
