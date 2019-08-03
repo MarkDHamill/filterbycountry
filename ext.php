@@ -37,7 +37,7 @@ class ext extends \phpbb\extension\base
 			$language->add_lang(array('common'), 'phpbbservices/filterbycountry');
 			$message_type = E_USER_WARNING;
 			$message = $language->lang('ACP_FBC_REQUIREMENTS');
-			trigger_error($message , $message_type);
+			trigger_error($message, $message_type);
 			return false;
 		};
 

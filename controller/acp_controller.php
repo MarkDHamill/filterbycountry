@@ -169,7 +169,7 @@ class acp_controller
 		if ($mode == 'settings')
 		{
 			$this->template->assign_vars(array(
-				'COUNTRY_CODES' 					=> $this->config_text->get('phpbbservices_filterbycountry_country_codes'),
+				'COUNTRY_CODES' 					=> $this->config_text->get('phpbbservices_filterbycountry_country_codes'),	// Processed by the Javascript
 				'ERROR_MSG'     					=> $s_errors ? implode('<br />', $errors) : '',
 				'FBC_ALLOW_OUT_OF_COUNTRY_LOGINS'	=> (bool) $this->config['phpbbservices_filterbycountry_allow_out_of_country_logins'],
 				'FBC_ALLOW_RESTRICT'				=> (bool) $this->config['phpbbservices_filterbycountry_allow'],
@@ -272,7 +272,7 @@ class acp_controller
 					}
 				}
 
-				// Get distinct country codes in the table. We only want to fetch statistics for
+				// Get distinct country codes in the table for the time period wanted. We only want to fetch statistics for
 				// countries that have actually garnered hits.
 				$distinct_countries = array();
 				$sql = 'SELECT DISTINCT country_code 
@@ -319,9 +319,9 @@ class acp_controller
 					$rowset = $this->db->sql_fetchrowset($result);
 
 					// Add to $rowset a column representing the textual country name, in the user's language
-					for ($i=0; $i<count($rowset); $i++)
+					foreach ($rowset as $row)
 					{
-						$rowset[$i]['country_name'] = $countries[$rowset[$i]['country_code']];
+						$row['country_name'] = $countries[$row['country_code']];
 					}
 
 					// The $rowset array must be ordered outside of SQL because the country name is localized and is not stored in the database

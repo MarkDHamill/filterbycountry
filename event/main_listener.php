@@ -274,7 +274,6 @@ class main_listener implements EventSubscriberInterface
 		if (!$allow_ip)
 		{
 
-			$url = $this->request->server('REQUEST_URI');
 			if ($this->config['phpbbservices_filterbycountry_allow_out_of_country_logins'])
 			{
 				// In this condition, you can access the board if you are an actively registered user and are already
@@ -287,6 +286,7 @@ class main_listener implements EventSubscriberInterface
 				}
 
 				// If not logged in, you are at least allowed to access the login page when this setting enabled
+				$url = $this->request->server('REQUEST_URI');
 				if (stristr($url, "ucp.$this->phpEx?mode=login"))
 				{
 					return;

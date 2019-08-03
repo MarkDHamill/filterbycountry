@@ -57,8 +57,7 @@ class common
 		// 1. Create directories if needed or if directed
 		// 2. Checks for the MaxMind country database. If it exists in the right place, exit successfully.
 		// 3. Otherwise fetches the database from maxmind.com using curl, which is in a .tar.gz file
-		// 4. If successful, extracts the .tar file
-		// 5. The tar file is then untarred, which creates a directory containing the needed .mmdb file
+		// 4. Extracts the .mmdb file from the tar.gz file
 		// 5. Moves the .mmdb file to the parent database
 		// 6. Removes all other files and directories in this directory
 
@@ -66,7 +65,6 @@ class common
 		$maxmind_url = 'https://geolite.maxmind.com/download/geoip/database/GeoLite2-Country.tar.gz';	// Location of country database on the web
 		$extension_store_directory = $this->phpbb_root_path . 'store/phpbbservices/filterbycountry';
 		$database_gz_file_path = $extension_store_directory . '/GeoLite2-Country.tar.gz';
-		$database_tar_file_path = $extension_store_directory . '/GeoLite2-Country.tar';
 		$database_mmdb_file_path = $extension_store_directory . '/GeoLite2-Country.mmdb';
 
 		// Create the directories needed, if they don't exist
@@ -158,13 +156,15 @@ class common
 		curl_close($ch);
 		fclose($fp);
 
-		// Now, untar the tarball. It will create a directory in store/phpbbservices/filterbycountry. The directory
-		// name includes the date the tarball was created.
+		// Now, extract the database. It will create a directory in store/phpbbservices/filterbycountry. The directory
+		// name includes the date the tarball was created. Note that the .tar file does not need to be extracted first.
+		// The PharData::extractTo() does both steps, but does create a subdirectory we don't want.
 		$p = new \PharData($database_gz_file_path);
 		$p->extractTo($extension_store_directory);
 
-		// Find the directory with the extract of the tarball. There should only be this one new directory in
-		// store/phpbbservices/filterbycountry.
+		// Find the directory with the database. There should only be this one new directory in
+		// store/phpbbservices/filterbycountry. The directory name is based on the date the database was refreshed, like
+		// GeoLite2-Country_20190730. The database is inside it.
 		$found_tarball_dir = false;
 		if ($dh = opendir($extension_store_directory))
 		{
@@ -218,7 +218,7 @@ class common
 			closedir($dh);
 		}
 
-		// Note the date and time the database was last updated
+		// Note the date and time the database was last added or replaced
 		$this->config->set('phpbbservices_filterbycountry_cron_task_last_gc', time());
 		return true;
 

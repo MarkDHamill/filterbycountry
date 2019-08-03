@@ -50,7 +50,7 @@ class update_country_database extends \phpbb\cron\task\base
 		$last_run = (int) $this->config['phpbbservices_filterbycountry_cron_task_last_gc'];
 		$days_difference = floor((float) ((time() - $last_run) / (24 * 60 * 60)));
 
-		return (bool) (($todays_dow >= 3 && $days_difference >= 7) || ($last_run == 0));
+		return (bool) (($last_run == 0) || ($todays_dow >= 3 && $days_difference >= 7));
 	}
 
 	public function run()
@@ -62,7 +62,7 @@ class update_country_database extends \phpbb\cron\task\base
 		// An email may be sent to founders too.
 		$this->helper->download_maxmind(true);
 
-		// If for some reason downloading MaxMind fails, let's not lock up other crons. So let's always return true to cron.php to preclude this.
+		// If for some reason downloading the MaxMind database fails, let's not lock up other crons. So let's always return true to cron.php to preclude this.
 		return true;
 
 	}
