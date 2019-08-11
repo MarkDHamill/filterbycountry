@@ -36,9 +36,9 @@ class install_schema extends \phpbb\db\migration\migration
 						'allowed'		=> array('TINT:4', 0),
 						'not_allowed'	=> array('TINT:4', 0),
 					),
-					'PRIMARY_KEY'        => array('country_code', 'timestamp'),
+					'PRIMARY_KEY'       => array('country_code', 'timestamp'),
 					'KEYS' => array(
-						'fbc_ts_cc'            => array('INDEX', array('timestamp', 'country_code')),
+						'fbc_ts_cc'     => array('INDEX', array('timestamp', 'country_code')),
 					),
                 ),
 			)
@@ -56,6 +56,46 @@ class install_schema extends \phpbb\db\migration\migration
 			)
 
 		);
+
+	}
+
+	public function revert_data()
+	{
+		// Clean up. Remove the extension's filterbycountry directory and the Maxmind database inside it, which likely exist.
+		$this->rrmdir('./../store/phpbbservices/filterbycountry');
+		return array();
+	}
+
+	private function rrmdir($dir)
+	{
+
+		// Recursively removes files in a directory
+		if (is_dir($dir))
+		{
+			$inodes = scandir($dir);
+			if (is_array($inodes))
+			{
+				foreach ($inodes as $inode)
+				{
+					if ($inode != "." && $inode != "..")
+					{
+						if (is_dir($dir . "/" . $inode))
+						{
+							$success = rrmdir($dir . "/" . $inode);
+						}
+						else
+						{
+							$success = unlink($dir . "/" . $inode);
+						}
+						if (!$success)
+						{
+							return false;
+						}
+					}
+				}
+				rmdir($dir);
+			}
+		}
 
 	}
 

@@ -65,7 +65,6 @@ class common
 		$maxmind_url = 'https://geolite.maxmind.com/download/geoip/database/GeoLite2-Country.tar.gz';	// Location of country database on the web
 		$extension_store_directory = $this->phpbb_root_path . 'store/phpbbservices/filterbycountry';
 		$database_gz_file_path = $extension_store_directory . '/GeoLite2-Country.tar.gz';
-		$database_mmdb_file_path = $extension_store_directory . '/GeoLite2-Country.mmdb';
 
 		// Create the directories needed, if they don't exist
 		if ($update_database)
@@ -101,27 +100,11 @@ class common
 		}
 
 		// Do we have write permissions to the extension's store directory?
-		if (!is_writeable($extension_store_directory ))
+		if (!is_writable($extension_store_directory ))
 		{
 			// Report error
 			$this->phpbb_log->add(LOG_CRITICAL, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_WRITE_FILE_ERROR', false, array($extension_store_directory));
 			return false;
-		}
-
-		// Check to see if the MaxMind country database is already in the right place in the file system.
-		if (file_exists($database_mmdb_file_path))
-		{
-			if (is_readable($database_mmdb_file_path))
-			{
-				// The database exists and is hopefully current so we can exit the function
-				return true;
-			}
-			else
-			{
-				// No read permissions to the database, so show an error
-				$this->phpbb_log->add(LOG_CRITICAL, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_READ_FILE_ERROR', false, array($database_gz_file_path));
-				return false;
-			}
 		}
 
 		// Since a copy of the database is not downloaded, fetch the database from maxmind.com using curl, which downloads a .tar.gz file
@@ -160,7 +143,15 @@ class common
 		// name includes the date the tarball was created. Note that the .tar file does not need to be extracted first.
 		// The PharData::extractTo() does both steps, but does create a subdirectory we don't want.
 		$p = new \PharData($database_gz_file_path);
-		$p->extractTo($extension_store_directory);
+		try
+		{
+			$p->extractTo($extension_store_directory);
+		}
+		catch (\Exception $e)
+		{
+			$this->phpbb_log->add(LOG_CRITICAL, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_EXTRACT_ERROR', false, array($database_gz_file_path, $extension_store_directory, $e->getCode()));
+			return false;
+		}
 
 		// Find the directory with the database. There should only be this one new directory in
 		// store/phpbbservices/filterbycountry. The directory name is based on the date the database was refreshed, like

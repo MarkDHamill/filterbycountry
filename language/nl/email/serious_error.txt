@@ -1,8 +1,0 @@
-Subject: Ernstige fout met MaxMind database gebruikt door Filter op land phpBB extensie
-
-Hallo,
-
-Dit is om u te melden dat er een ernstige fout is opgetreden bij het openen of gebruiken van de MaxMind gratis GeoLite2 database. Deze
-database wordt gebruikt door de Filter op land extensie geïnstalleerd op uw forum. Hoogstwaarschijnlijk is de database beschadigd.
-Om ervoor te zorgen dat uw forum toegankelijk blijft, staat de extensie toe dat al het verkeer toegang heeft tot uw forum. Het onderliggende
-probleem moet worden opgelost om het verkeer per land te filteren.

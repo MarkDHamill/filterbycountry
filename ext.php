@@ -25,7 +25,8 @@ class ext extends \phpbb\extension\base
 			ini_get('allow_url_fopen') &&
 			extension_loaded('curl') &&
 			extension_loaded('dom') &&
-			extension_loaded('Phar')
+			extension_loaded('Phar') &&
+			is_writable ( './../store/' )
 		)
 		{
 			// Conditions met to install extension

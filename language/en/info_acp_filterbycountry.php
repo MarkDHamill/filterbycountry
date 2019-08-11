@@ -47,6 +47,7 @@ $lang = array_merge($lang, array(
 	'LOG_ACP_FBC_CREATE_DIRECTORY_ERROR'	=> '<strong>Unable to create the folder %1$s. This may be due to insufficient permissions. The file permissions on the folder should be set to publicly writeable (777 on Unix-based systems).</strong>',
 	'LOG_ACP_FBC_DEBUG'						=> '<strong>%1s</strong>',
 	'LOG_ACP_FBC_DELETE_ERROR'				=> '<strong>Unable to delete %1$s. This may be due to insufficient permissions. Full public write permissions are needed.</strong>',
+	'LOG_ACP_FBC_EXTRACT_ERROR'				=> '<strong>Unable to extract %1$s to %2$s. An “%3$s” exception was thrown.</strong>',
 	'LOG_ACP_FBC_FILTERBYCOUNTRY_SETTINGS'	=> '<strong>Filter by country settings updated</strong>',
 	'LOG_ACP_FBC_FOPEN_ERROR'				=> '<strong>Could not open file: %1$s</strong>',
 	'LOG_ACP_FBC_GZIP_OPEN_ERROR'			=> '<strong>Could not open gzip file: %1$s</strong>',

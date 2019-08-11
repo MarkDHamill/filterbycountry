@@ -32,8 +32,8 @@ class main_listener implements EventSubscriberInterface
 	}
 
 	protected $config;
-	protected $db;
 	protected $config_text;
+	protected $db;
 	protected $helper;
 	protected $language;
 	protected $log;
@@ -133,12 +133,16 @@ class main_listener implements EventSubscriberInterface
 			return;
 		}
 
-		// If the database doesn't exist (first time), create it. Note: if the database cannot be created, the
-		// function returns false. In this case, rather than disrupt the board we simply exit the function. The
-		// extension's functionality is essentially disabled until the underlying problem is fixed.
-		if (!$this->helper->download_maxmind())
+		$database_mmdb_file_path = $this->phpbb_root_path . 'store/phpbbservices/filterbycountry/GeoLite2-Country.mmdb';
+		if (!file_exists($database_mmdb_file_path))
 		{
-			return;
+			// If the database doesn't exist (first time), create it. Note: if the database cannot be created, the
+			// function returns false. In this case, rather than disrupt the board we simply exit the function. The
+			// extension's functionality is essentially disabled until the underlying problem is fixed.
+			if (!$this->helper->download_maxmind())
+			{
+				return;
+			}
 		}
 
 		// Get a list of country codes of interest and place in an array for easy processing
@@ -150,9 +154,6 @@ class main_listener implements EventSubscriberInterface
 			// We won't bother to save the access in the log if the extension is effectively disabled.
 			return;
 		}
-
-		static $ip_stats_tracked = array();		// Tracks IP accesses written to the phpbb_fbc_stats table, so we only log an IP once for this moment. This approach supports multiuser access.
-		static $ip_errors_tracked = array();	// Tracks IP invalid accesses logged, so we only log an IP once for this moment. This approach supports multiuser access.
 
 		// Allow or restrict country codes?
 		$allow = $this->config['phpbbservices_filterbycountry_allow'] ? true : false;    // If false, restrict
@@ -196,51 +197,15 @@ class main_listener implements EventSubscriberInterface
 
 		if ($error)
 		{
-			// Add a note to the error log; hopefully an admin will notice.
+			// In the case of a serious error like a corrupt database, we need to log the event and send emails to
+			// relevant administrators. However, we don't want to take down the forum. All traffic is thus allowed.
 			$this->log->add(LOG_CRITICAL, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_MAXMIND_ERROR');
-
-			// Also, send an email because this is important!
-			if (!class_exists('messenger'))
-			{
-				include($this->phpbb_root_path . 'includes/functions_messenger.' . $this->phpEx);
-			}
-
-			$messenger = new \messenger(false);	// Don't use queue
-
-			// Send the email to all users with founder status
-			$sql_ary = array(
-				'SELECT'	=> 'user_email',
-				'FROM'		=> array(USERS_TABLE	=> 'u'),
-				'WHERE'		=> 'user_type = ' . USER_FOUNDER);
-			$sql = $this->db->sql_build_query('SELECT', $sql_ary);
-			$result = $this->db->sql_query($sql);
-			$rowset = $this->db->sql_fetchrowset($result);
-
-			foreach ($rowset as $row)
-			{
-				$messenger->to($row['user_email']);
-			}
-			$this->db->sql_freeresult($result);
-
-			// Set email header information
-			$messenger->from($this->config['board_email']);
-			$messenger->replyto($this->config['board_email']);
-
-			// Set and send the email content
-			$email_templates_path = $this->phpbb_root_path . 'ext/phpbbservices/filterbycountry/language/en/email/';	// Note: the email templates (except subscribe/unsubscribe templates not used here) are language independent, so it's okay to use British English as it is always supported and the subscribe/unsubscribe templates are not used here.
-			$messenger->template('serious_error', '', $email_templates_path);
-			$messenger->subject($this->language->lang('ACP_FBC_SERIOUS_MAXMIND_ERROR'));
-			$messenger->send(NOTIFY_EMAIL, true);
-
-			// Now also disable the extension. Since the extension depends on a third-party database working correctly,
-			// when it cannot be relied on, rather than have the whole forum down, it's better to disable the extension.
-			$sql = 'UPDATE ' . EXT_TABLE . " SET ext_active = 0 WHERE ext_name = 'phpbbservices/filterbycountry'";
-			$this->db->sql_query($sql);
 			return;
 		}
 
 		if (!$exception)
 		{
+
 			if ($allow)
 			{
 				// If allow is true, country code of IP must be in list of approved country codes to have access to the board.
@@ -251,6 +216,30 @@ class main_listener implements EventSubscriberInterface
 				// If allow is false, country code of IP must NOT be in list of approved country codes to get access to the board.
 				$allow_ip = !(in_array($country_code, $country_codes));
 			}
+
+			if ($this->config['phpbbservices_filterbycountry_allow_out_of_country_logins'])
+			{
+				// In this condition, you can access the board if you are an actively registered user and are already
+				// logged in, as evidenced by the user_type, which won't be set for normal users and founders unless
+				// you are already logged in. Inactive users and bots are not allowed in. You have to be already logged
+				// in to be annotated as a founder or normal user.
+
+				$allow_ip = true;
+				if (in_array($this->user->data['user_type'], array(USER_FOUNDER, USER_NORMAL)))
+				{
+					$this->save_access_wrapper('allow', $user_ip, $country_code, $allow_ip);
+					return;
+				}
+
+				// If not logged in, you are at least allowed to access the login page when this setting enabled
+				$url = $this->request->server('REQUEST_URI');
+				if (stristr($url, "ucp.$this->phpEx?mode=login"))
+				{
+					$this->save_access_wrapper('allow', $user_ip, $country_code, $allow_ip);
+					return;
+				}
+			}
+
 		}
 		else
 		{
@@ -260,50 +249,17 @@ class main_listener implements EventSubscriberInterface
 		}
 
 		// Log the access to the phpbb_fbc_stats table, if so configured. We only log access once.
-		if ($this->config['phpbbservices_filterbycountry_keep_statistics'])
-		{
-			if (!in_array($user_ip, $ip_stats_tracked))
-			{
-				$ip_stats_tracked[] = $user_ip;    // In case of multiuser access, want to log access once only for each IP
-				$this->save_access($country_code, $allow_ip);
-			}
-		}
+		$this->save_access_wrapper('allow', $user_ip, $country_code, $allow_ip);
 
 		// This triggers the error letting the user know access is denied. They see forum headers and footers, and the error message.
 		// Any links clicked on should simply continue to deny access.
 		if (!$allow_ip)
 		{
 
-			if ($this->config['phpbbservices_filterbycountry_allow_out_of_country_logins'])
-			{
-				// In this condition, you can access the board if you are an actively registered user and are already
-				// logged in, as evidenced by the user_type, which won't be set for normal users and founders unless
-				// you are already logged in. Inactive users and bots are not allowed in. You have to be already logged
-				// in to be annotated as a founder or normal user.
-				if (in_array($this->user->data['user_type'], array(USER_FOUNDER, USER_NORMAL)))
-				{
-					return;
-				}
-
-				// If not logged in, you are at least allowed to access the login page when this setting enabled
-				$url = $this->request->server('REQUEST_URI');
-				if (stristr($url, "ucp.$this->phpEx?mode=login"))
-				{
-					return;
-				}
-			}
-
 			$country = $this->helper->get_country_name($country_code);	// Text name of the country in the user's language.
 
 			// Log the unwanted access, if desired, but only if the IP has not already been tracked.
-			if ($this->config['phpbbservices_filterbycountry_log_access_errors'])
-			{
-				if (!in_array($user_ip, $ip_errors_tracked))
-				{
-					$ip_errors_tracked[] = $user_ip;    // In case of multiuser access, want to log bad access just once only for each IP
-					$this->log->add(LOG_ADMIN, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_BAD_ACCESS', false, array($this->user->data['username'], $user_ip, $country));
-				}
-			}
+			$this->save_access_wrapper('not_allow', $user_ip, $country_code, $allow_ip);
 
 			// Not allowed to see board content, so present warning message. Provide a login link if allowed.
 			if ($this->config['phpbbservices_filterbycountry_allow_out_of_country_logins'])
@@ -317,6 +273,45 @@ class main_listener implements EventSubscriberInterface
 
 		}
 
+	}
+
+
+	private function save_access_wrapper($type = 'allow', $user_ip, $country_code, $allow_ip)
+	{
+
+		// This function basically just calls save_access() but only if the IP has not already been tracked for this moment.
+		// It's purpose is to ensure that a given IP has been logged only once for a particular moment.
+		//
+		// Parameters:
+		//		$type = allow \ not_allow
+		//		$user_ip = IPV4 address of user
+		//		$country_code = 2 digit country code returned by MaxMind
+		//		$allow_ip = true \ false
+
+		static $ip_allow_tracked = array();		// Tracks IP accesses written to the phpbb_fbc_stats table, so we only log an IP once for this moment. This approach supports multiuser access.
+		static $ip_not_allow_tracked = array();	// Tracks IP invalid accesses logged, so we only log an IP once for this moment. This approach supports multiuser access.
+
+		// Log the access to the phpbb_fbc_stats table, if so configured. We only log access once.
+		if ($this->config['phpbbservices_filterbycountry_keep_statistics'])
+		{
+			if ($type == 'allow')
+			{
+				if (!in_array($user_ip, $ip_allow_tracked))
+				{
+					$ip_allow_tracked[] = $user_ip;    // In case of multiuser access, want to log access once only for each IP
+					$this->save_access($country_code, $allow_ip);
+				}
+			}
+			else
+			{
+				if (!in_array($user_ip, $ip_not_allow_tracked))
+				{
+					$ip_not_allow_tracked[] = $user_ip;    // In case of multiuser access, want to log access once only for each IP
+					$this->save_access($country_code, $allow_ip);
+				}
+			}
+		}
+		return;
 	}
 
 	private function save_access($country_code, $allow_ip)

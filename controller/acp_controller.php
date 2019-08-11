@@ -159,10 +159,16 @@ class acp_controller
 
 		// First test if the GeoLite2-Country-Country.mmdb database exists in /store/phpbbservices/filterbycountry directory.
 		// If it doesn't, the function will create the directory and populate it
-		$success = $this->helper->download_maxmind(false);
-		if (!$success)
+
+		$database_mmdb_file_path = $this->phpbb_root_path . 'store/phpbbservices/filterbycountry/GeoLite2-Country.mmdb';
+		if (!file_exists($database_mmdb_file_path))
 		{
-			trigger_error($this->language->lang('ACP_FBC_CREATE_DATABASE_ERROR'));
+			// If the database doesn't exist (first time), create it. Note: if the database cannot be created, the
+			// function returns false. In this case, we draw attention to the issue so the underlying problem can be fixed.
+			if (!$this->helper->download_maxmind())
+			{
+				trigger_error($this->language->lang('ACP_FBC_CREATE_DATABASE_ERROR'));
+			}
 		}
 
 		// Set output variables for display in the template
