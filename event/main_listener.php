@@ -145,19 +145,26 @@ class main_listener implements EventSubscriberInterface
 			}
 		}
 
+		// VPN services allowed? If an IP is not found in the database, it is assumed to be a VPN IP.
+		$vpn_allowed = ($this->config['phpbbservices_filterbycountry_ip_not_found_allow'] == 1) ? true : false;
+
+		// Get ignore bots setting and determine if it should be applied
+		$ignore_bots = (($this->user->data['user_type'] == USER_IGNORE) && ($this->config['phpbbservices_filterbycountry_ignore_bots'] == 1)) ? true : false;
+
 		// Get a list of country codes of interest and place in an array for easy processing
 		$country_codes = explode(',', $this->config_text->get('phpbbservices_filterbycountry_country_codes'));
+		$empty_array = count(array_values($country_codes)) == 1 && $country_codes[0] == '';
 
-		if (empty($country_codes))
+		// Allow (1), restrict (0) or ignore(2) country codes?
+		$allow = (int) $this->config['phpbbservices_filterbycountry_allow'];
+
+		if (!$vpn_allowed && ($empty_array || $allow == constants::ACP_FBC_VPN_ONLY))
 		{
-			// User is always allowed in if no countries were selected by admin. Otherwise, the board is effectively disabled.
-			// We won't bother to save the access in the log if the extension is effectively disabled.
+			// User is always allowed in if no countries were selected by admin or the extension ignores countries AND
+			// the VPN feature is not wanted. Otherwise, the board is effectively disabled. We won't bother to save the
+			// access in the log since the extension is effectively disabled.
 			return;
 		}
-
-		// Allow or restrict country codes?
-		$allow = $this->config['phpbbservices_filterbycountry_allow'] ? true : false;    // If false, restrict
-		$ip_not_found_allow = $this->config['phpbbservices_filterbycountry_ip_not_found_allow'] ? true : false;    // If false, restrict
 
 		include($this->phpbb_root_path . 'vendor/autoload.php');
 
@@ -197,8 +204,8 @@ class main_listener implements EventSubscriberInterface
 
 		if ($error)
 		{
-			// In the case of a serious error like a corrupt database, we need to log the event and send emails to
-			// relevant administrators. However, we don't want to take down the forum. All traffic is thus allowed.
+			// In the case of a serious error like a corrupt database, we need to log the event. However, we don't want
+			// to take down the forum.  All traffic is thus allowed if this occurs.
 			$this->log->add(LOG_CRITICAL, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_MAXMIND_ERROR');
 			return;
 		}
@@ -206,28 +213,34 @@ class main_listener implements EventSubscriberInterface
 		if (!$exception)
 		{
 
-			if ($allow)
+			// The IP was found in the Maxmind database
+
+			switch($allow)
 			{
-				// If allow is true, country code of IP must be in list of approved country codes to have access to the board.
-				$allow_ip = in_array($country_code, $country_codes);
-			}
-			else
-			{
-				// If allow is false, country code of IP must NOT be in list of approved country codes to get access to the board.
-				$allow_ip = !(in_array($country_code, $country_codes));
+				case 0:	// Allow IP only if not in the list of countries specified (restrict)
+					$allow_ip = !(in_array($country_code, $country_codes));
+				break;
+
+				case 1:	// Allow IP only if in list of countries specified (allow)
+				default:
+					$allow_ip = in_array($country_code, $country_codes);
+				break;
+
+				case 2:	// IP not allowed in because it is in the database, so it's not a VPN IP (ignore)
+					$allow_ip = false;
+				break;
 			}
 
-			if ($this->config['phpbbservices_filterbycountry_allow_out_of_country_logins'])
+			if ($allow_ip && $this->config['phpbbservices_filterbycountry_allow_out_of_country_logins'])
 			{
 				// In this condition, you can access the board if you are an actively registered user and are already
 				// logged in, as evidenced by the user_type, which won't be set for normal users and founders unless
 				// you are already logged in. Inactive users and bots are not allowed in. You have to be already logged
 				// in to be annotated as a founder or normal user.
 
-				$allow_ip = true;
 				if (in_array($this->user->data['user_type'], array(USER_FOUNDER, USER_NORMAL)))
 				{
-					$this->save_access_wrapper('allow', $user_ip, $country_code, $allow_ip);
+					$this->save_access_wrapper($user_ip, $country_code, $allow_ip, $ignore_bots);
 					return;
 				}
 
@@ -235,7 +248,7 @@ class main_listener implements EventSubscriberInterface
 				$url = $this->request->server('REQUEST_URI');
 				if (stristr($url, "ucp.$this->phpEx?mode=login"))
 				{
-					$this->save_access_wrapper('allow', $user_ip, $country_code, $allow_ip);
+					$this->save_access_wrapper($user_ip, $country_code, $allow_ip, $ignore_bots);
 					return;
 				}
 			}
@@ -243,13 +256,10 @@ class main_listener implements EventSubscriberInterface
 		}
 		else
 		{
-			// Since the IP address was not found in the MaxMind database, allow IP if these sorts of errors are allowed access,
-			// which is an ACP setting. Also allow localhost.
-			$allow_ip = (bool) ($ip_not_found_allow || $user_ip == '127.0.0.1');
+			// Since the IP address was not found in the MaxMind database, allow IP if VPN access is allowed. Also
+			// allow localhost.
+			$allow_ip = (bool) ($vpn_allowed || $user_ip == '127.0.0.1');
 		}
-
-		// Log the access to the phpbb_fbc_stats table, if so configured. We only log access once.
-		$this->save_access_wrapper('allow', $user_ip, $country_code, $allow_ip);
 
 		// This triggers the error letting the user know access is denied. They see forum headers and footers, and the error message.
 		// Any links clicked on should simply continue to deny access.
@@ -259,10 +269,14 @@ class main_listener implements EventSubscriberInterface
 			$country = $this->helper->get_country_name($country_code);	// Text name of the country in the user's language.
 
 			// Log the unwanted access, if desired, but only if the IP has not already been tracked.
-			$this->save_access_wrapper('not_allow', $user_ip, $country_code, $allow_ip);
+			$this->save_access_wrapper($user_ip, $country_code, $allow_ip, $ignore_bots);
 
 			// Not allowed to see board content, so present warning message. Provide a login link if allowed.
-			if ($this->config['phpbbservices_filterbycountry_allow_out_of_country_logins'])
+			if ($vpn_allowed && ($empty_array || $allow == constants::ACP_FBC_VPN_ONLY))
+			{
+				@trigger_error($this->language->lang('ACP_FBC_DENY_ACCESS_VPN', $user_ip, $country), E_USER_WARNING);
+			}
+			else if ($this->config['phpbbservices_filterbycountry_allow_out_of_country_logins'])
 			{
 				@trigger_error($this->language->lang('ACP_FBC_DENY_ACCESS_LOGIN', $user_ip, $country, $this->phpbb_root_path . "ucp.$this->phpEx?mode=login"), E_USER_WARNING);
 			}
@@ -272,21 +286,33 @@ class main_listener implements EventSubscriberInterface
 			}
 
 		}
+		else
+		{
+			// Log the access to the phpbb_fbc_stats table, if so configured. We only log access once.
+			$this->save_access_wrapper($user_ip, $country_code, $allow_ip, $ignore_bots);
+		}
 
 	}
 
 
-	private function save_access_wrapper($type = 'allow', $user_ip, $country_code, $allow_ip)
+	private function save_access_wrapper($user_ip, $country_code, $allow_ip, $ignore_bots)
 	{
 
 		// This function basically just calls save_access() but only if the IP has not already been tracked for this moment.
-		// It's purpose is to ensure that a given IP has been logged only once for a particular moment.
+		// Its purpose is to ensure that a given IP has been logged only once for a particular moment.
 		//
 		// Parameters:
-		//		$type = allow \ not_allow
 		//		$user_ip = IPV4 address of user
-		//		$country_code = 2 digit country code returned by MaxMind
-		//		$allow_ip = true \ false
+		//		$country_code = 2-digit country code returned by MaxMind
+		//		$allow_ip = flag whether IP is allowed or not
+		//		$ignore_bots = indicates if this is a known bot and the bot should be ignored in the statistics
+
+		if ($ignore_bots)
+		{
+			// Don't capture any bot statistics if this is enabled. This doesn't mean the bot can't read the page,
+			// only that statistics won't be kept for the bot.
+			return;
+		}
 
 		static $ip_allow_tracked = array();		// Tracks IP accesses written to the phpbb_fbc_stats table, so we only log an IP once for this moment. This approach supports multiuser access.
 		static $ip_not_allow_tracked = array();	// Tracks IP invalid accesses logged, so we only log an IP once for this moment. This approach supports multiuser access.
@@ -294,7 +320,7 @@ class main_listener implements EventSubscriberInterface
 		// Log the access to the phpbb_fbc_stats table, if so configured. We only log access once.
 		if ($this->config['phpbbservices_filterbycountry_keep_statistics'])
 		{
-			if ($type == 'allow')
+			if ($allow_ip)
 			{
 				if (!in_array($user_ip, $ip_allow_tracked))
 				{

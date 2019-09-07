@@ -124,6 +124,10 @@ class acp_controller
 					$save_statistics = $this->request->variable('phpbbservices_filterbycountry_keep_statistics', 0);
 					$this->config->set('phpbbservices_filterbycountry_keep_statistics', $save_statistics);
 
+					// Save the ignore bots setting
+					$ignore_bots = $this->request->variable('phpbbservices_filterbycountry_ignore_bots', 0);
+					$this->config->set('phpbbservices_filterbycountry_ignore_bots', $ignore_bots);
+
 					if ($save_statistics)
 					{
 						// Set the statistics start date to the current time
@@ -148,8 +152,20 @@ class acp_controller
 					// Add option settings change action to the admin log
 					$this->log->add('admin', $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_FILTERBYCOUNTRY_SETTINGS');
 
-					// Option settings have been updated and logged
-					// Confirm this to the user and provide link back to previous page
+					// Allow (1), restrict (0) or ignore(2) country codes?
+					$allow = (int) $this->config['phpbbservices_filterbycountry_allow'];
+
+					// VPN services allowed? If an IP is not found in the database, it is assumed to be a VPN IP.
+					$vpn_allowed = ($this->config['phpbbservices_filterbycountry_ip_not_found_allow'] == 1) ? true : false;
+
+					if (!$vpn_allowed && ((count($country_codes) == 0) || $allow == constants::ACP_FBC_VPN_ONLY))
+					{
+						// User is always allowed in if no countries were selected by admin or the extension ignores countries AND
+						// the VPN feature is not wanted. Otherwise, the board is effectively disabled. We need to warn the administrator
+						// about this behavior.
+						@trigger_error($this->language->lang('ACP_FBC_EFFECTIVELY_DISABLED'). adm_back_link($this->u_action),E_USER_WARNING);
+					}
+
 					trigger_error($this->language->lang('ACP_FBC_SETTING_SAVED') . adm_back_link($this->u_action));
 				}
 			}
@@ -167,7 +183,7 @@ class acp_controller
 			// function returns false. In this case, we draw attention to the issue so the underlying problem can be fixed.
 			if (!$this->helper->download_maxmind())
 			{
-				trigger_error($this->language->lang('ACP_FBC_CREATE_DATABASE_ERROR'));
+				@trigger_error($this->language->lang('ACP_FBC_CREATE_DATABASE_ERROR'), E_USER_WARNING);
 			}
 		}
 
@@ -178,7 +194,8 @@ class acp_controller
 				'COUNTRY_CODES' 					=> $this->config_text->get('phpbbservices_filterbycountry_country_codes'),	// Processed by the Javascript
 				'ERROR_MSG'     					=> $s_errors ? implode('<br />', $errors) : '',
 				'FBC_ALLOW_OUT_OF_COUNTRY_LOGINS'	=> (bool) $this->config['phpbbservices_filterbycountry_allow_out_of_country_logins'],
-				'FBC_ALLOW_RESTRICT'				=> (bool) $this->config['phpbbservices_filterbycountry_allow'],
+				'FBC_ALLOW_RESTRICT'				=> (int) $this->config['phpbbservices_filterbycountry_allow'],
+				'FBC_IGNORE_BOTS'					=> (bool) $this->config['phpbbservices_filterbycountry_ignore_bots'],
 				'FBC_IP_NOT_FOUND_ALLOW_RESTRICT'	=> (bool) $this->config['phpbbservices_filterbycountry_ip_not_found_allow'],
 				'FBC_KEEP_STATISTICS'				=> (bool) $this->config['phpbbservices_filterbycountry_keep_statistics'],
 				'FBC_LOG_ACCESS_ERRORS'				=> (bool) $this->config['phpbbservices_filterbycountry_log_access_errors'],
@@ -296,6 +313,7 @@ class acp_controller
 
 				if (count($distinct_countries) > 0)
 				{
+
 					// To present a report by country, we need to put the information in tabular form. Since country names
 					// could vary based on language, it's not viable to put them in a database (otherwise we'd have a ready
 					// option available for sorting). So we'll parse the language string ACP_FBC_OPTIONS for country codes and
@@ -325,9 +343,9 @@ class acp_controller
 					$rowset = $this->db->sql_fetchrowset($result);
 
 					// Add to $rowset a column representing the textual country name, in the user's language
-					foreach ($rowset as $row)
+					for ($i=0; $i < count($rowset); $i++)
 					{
-						$row['country_name'] = $countries[$row['country_code']];
+						$rowset[$i]['country_name'] = $countries[$rowset[$i]['country_code']];
 					}
 
 					// The $rowset array must be ordered outside of SQL because the country name is localized and is not stored in the database
@@ -378,7 +396,6 @@ class acp_controller
 							'ALLOWED'		=> $allowed_count,
 							'FLAG'			=> '<img src="' . $flag_path. '" alt="' . $countries[$row['country_code']]. '" title="' . $countries[$row['country_code']]. '">',
 							'RESTRICTED'	=> $not_allowed_count,
-							'S_SHOW_FLAG'	=> (file_exists($flag_path)) ? true : false,
 							'TEXT'        	=> $countries[$row['country_code']],
 						));
 

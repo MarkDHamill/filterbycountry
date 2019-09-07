@@ -12,7 +12,7 @@ namespace phpbbservices\filterbycountry\constants;
 
 class constants {
 
-	const ACP_FBC_COUNTRY_NOT_FOUND = '??';
+	const ACP_FBC_COUNTRY_NOT_FOUND = 'WO';	// World, so unknown
 	const ACP_FBC_NO_LIMIT_VALUE = 1;
 	const ACP_FBC_LAST_QUARTER_VALUE = 2;
 	const ACP_FBC_LAST_MONTH_VALUE = 3;
@@ -26,5 +26,6 @@ class constants {
 	const ACP_FBC_LAST_30_MINUTES_VALUE = 11;
 	const ACP_FBC_LAST_15_MINUTES_VALUE = 12;
 	const ACP_FBC_STATS_TABLE = 'fbc_stats';
+	const ACP_FBC_VPN_ONLY = 2;
 
 }

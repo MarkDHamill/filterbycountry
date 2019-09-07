@@ -9,15 +9,15 @@
 	</div>
 {% endif %}
 
-
 <form id="phpbbservices_filterbycountry_acp" name="phpbbservices_filterbycountry_acp" method="post" action="{{ U_ACTION }}">
 	<fieldset>
 {% if S_SETTINGS %}
 		<legend>{{ lang('SETTINGS') }}</legend>
 		<dl>
 			<dt><label>{{ lang('ACP_FBC_ALLOW_RESTRICT') ~ lang('COLON') }}</label><br>{{ lang('ACP_FBC_ALLOW_RESTRICT_EXPLAIN') }}</dt>
-			<dd><label><input type="radio" class="radio" name="phpbbservices_filterbycountry_allow" value="1"{% if FBC_ALLOW_RESTRICT %} checked="checked"{% endif %} /> {{ lang('ACP_FBC_ALLOW') }}</label>
-				<label><input type="radio" class="radio" name="phpbbservices_filterbycountry_allow" value="0"{% if not FBC_ALLOW_RESTRICT %} checked="checked"{% endif %} /> {{ lang('ACP_FBC_RESTRICT') }}</label></dd>
+			<dd><label><input type="radio" class="radio" name="phpbbservices_filterbycountry_allow" value="1"{% if FBC_ALLOW_RESTRICT == 1 %} checked="checked"{% endif %} /> {{ lang('ACP_FBC_ALLOW') }}</label>
+				<label><input type="radio" class="radio" name="phpbbservices_filterbycountry_allow" value="0"{% if FBC_ALLOW_RESTRICT == 0 %} checked="checked"{% endif %} /> {{ lang('ACP_FBC_RESTRICT') }}</label>
+				<label><input type="radio" class="radio" id="ignore" name="phpbbservices_filterbycountry_allow" value="2"{% if FBC_ALLOW_RESTRICT == 2 %} checked="checked"{% endif %} /> {{ lang('ACP_FBC_IGNORE') }}</label></dd>
 		</dl>
 		<dl>
 			<dt><label for="phpbbservices_filterbycountry_country_codes">{{ lang('ACP_FBC_COUNTRIES') ~ lang('COLON') }}</label><br>{{ lang('ACP_FBC_COUNTRIES_EXPLAIN') }}</dt>
@@ -37,6 +37,11 @@
 			<dt><label>{{ lang('ACP_FBC_ALLOW_OUT_OF_COUNTRY_LOGINS') ~ lang('COLON') }}</label><br>{{ lang('ACP_FBC_ALLOW_OUT_OF_COUNTRY_LOGINS_EXPLAIN') }}</dt>
 			<dd><label><input type="radio" class="radio" name="phpbbservices_filterbycountry_allow_out_of_country_logins" value="1"{% if FBC_ALLOW_OUT_OF_COUNTRY_LOGINS %} checked="checked"{% endif %} /> {{ lang('YES') }}</label>
 				<label><input type="radio" class="radio" name="phpbbservices_filterbycountry_allow_out_of_country_logins" value="0"{% if not FBC_ALLOW_OUT_OF_COUNTRY_LOGINS %} checked="checked"{% endif %} /> {{ lang('NO') }}</label></dd>
+		</dl>
+		<dl>
+			<dt><label>{{ lang('ACP_FBC_IGNORE_BOTS') ~ lang('COLON') }}</label><br>{{ lang('ACP_FBC_IGNORE_BOTS_EXPLAIN') }}</dt>
+			<dd><label><input type="radio" class="radio" name="phpbbservices_filterbycountry_ignore_bots" value="1"{% if FBC_IGNORE_BOTS %} checked="checked"{% endif %} /> {{ lang('YES') }}</label>
+				<label><input type="radio" class="radio" name="phpbbservices_filterbycountry_ignore_bots" value="0"{% if not FBC_IGNORE_BOTS %} checked="checked"{% endif %} /> {{ lang('NO') }}</label></dd>
 		</dl>
 		<dl>
 			<dt><label>{{ lang('ACP_FBC_LOG_ACCESS_ERRORS') ~ lang('COLON') }}</label><br>{{ lang('ACP_FBC_LOG_ACCESS_ERRORS_EXPLAIN') }}</dt>
@@ -82,7 +87,7 @@
 		<tbody>
 		{% for country in countries %}
 			<tr>
-				<td headers="country">{% if country.S_SHOW_FLAG %}{{ country.FLAG }} {% endif %}<span>{{ country.TEXT }}</span></td><td headers="allowed" class="center">{{ country.ALLOWED }}</td><td headers="restricted" class="center">{{ country.RESTRICTED }}</td>
+				<td headers="country">{{ country.FLAG }} <span>{{ country.TEXT }}</span></td><td headers="allowed" class="center">{{ country.ALLOWED }}</td><td headers="restricted" class="center">{{ country.RESTRICTED }}</td>
 			</tr>
 		{% endfor %}
 		</tbody>
