@@ -325,7 +325,7 @@ class main_listener implements EventSubscriberInterface
 				if (!in_array($user_ip, $ip_allow_tracked))
 				{
 					$ip_allow_tracked[] = $user_ip;    // In case of multiuser access, want to log access once only for each IP
-					$this->save_access($country_code, $allow_ip);
+					$this->save_access($country_code, $allow_ip, $user_ip, $country_code);
 				}
 			}
 			else
@@ -333,14 +333,14 @@ class main_listener implements EventSubscriberInterface
 				if (!in_array($user_ip, $ip_not_allow_tracked))
 				{
 					$ip_not_allow_tracked[] = $user_ip;    // In case of multiuser access, want to log access once only for each IP
-					$this->save_access($country_code, $allow_ip);
+					$this->save_access($country_code, $allow_ip, $user_ip, $country_code);
 				}
 			}
 		}
 		return;
 	}
 
-	private function save_access($country_code, $allow_ip)
+	private function save_access($country_code, $allow_ip, $user_ip, $country)
 	{
 
 		// Avoid inserting a row in the phpbb_fbc_stats table if the primary key for the table already exists,
@@ -411,6 +411,14 @@ class main_listener implements EventSubscriberInterface
 		$this->db->sql_query($sql);
 
 		$this->db->sql_transaction('commit');
+
+		// Log the request if logging is enabled. Only restricted attempts are logged.
+		if ($this->config['phpbbservices_filterbycountry_log_access_errors'] && !$allow_ip)
+		{
+			$this->log->add(LOG_ADMIN, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_BAD_ACCESS', false, array($this->user->data['username'], $user_ip, $this->helper->get_country_name($country)));
+		}
+
+		return;
 
 	}
 
