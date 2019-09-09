@@ -11,13 +11,13 @@
 			if (countryCodesArray.indexOf($(this).val()) != -1) {
 				$(this).prop('selected', true);
 			};
-			// If the setting is to ignore country codes, disable the select control too
-			if ($('input[name=phpbbservices_filterbycountry_allow]:checked', '#phpbbservices_filterbycountry_acp').val() == 2) {
-				$('#phpbbservices_filterbycountry_country_codes').prop('disabled', 'disabled');
-			} else {
-				$('#phpbbservices_filterbycountry_country_codes').prop('disabled', false);
-			}
 		});
+		// If the setting is to ignore country codes, disable the select control too
+		if ($('input[name=phpbbservices_filterbycountry_allow]:checked', '#phpbbservices_filterbycountry_acp').val() == 2) {
+			$('#phpbbservices_filterbycountry_country_codes').prop('disabled', 'disabled');
+		} else {
+			$('#phpbbservices_filterbycountry_country_codes').prop('disabled', false);
+		}
 		// When reset button is pressed, this logic will unselect all country codes
 		$("#unselect_options").click(function() {
 			$("#phpbbservices_filterbycountry_country_codes option").each(function() {
