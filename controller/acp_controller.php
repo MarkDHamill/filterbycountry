@@ -152,20 +152,6 @@ class acp_controller
 					// Add option settings change action to the admin log
 					$this->log->add('admin', $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_FILTERBYCOUNTRY_SETTINGS');
 
-					// Allow (1), restrict (0) or ignore(2) country codes?
-					$allow = (int) $this->config['phpbbservices_filterbycountry_allow'];
-
-					// VPN services allowed? If an IP is not found in the database, it is assumed to be a VPN IP.
-					$vpn_allowed = ($this->config['phpbbservices_filterbycountry_ip_not_found_allow'] == 1) ? true : false;
-
-					if (!$vpn_allowed && ((count($country_codes) == 0) || $allow == constants::ACP_FBC_VPN_ONLY))
-					{
-						// User is always allowed in if no countries were selected by admin or the extension ignores countries AND
-						// the VPN feature is not wanted. Otherwise, the board is effectively disabled. We need to warn the administrator
-						// about this behavior.
-						@trigger_error($this->language->lang('ACP_FBC_EFFECTIVELY_DISABLED'). adm_back_link($this->u_action),E_USER_WARNING);
-					}
-
 					trigger_error($this->language->lang('ACP_FBC_SETTING_SAVED') . adm_back_link($this->u_action));
 				}
 			}
@@ -194,7 +180,7 @@ class acp_controller
 				'COUNTRY_CODES' 					=> $this->config_text->get('phpbbservices_filterbycountry_country_codes'),	// Processed by the Javascript
 				'ERROR_MSG'     					=> $s_errors ? implode('<br />', $errors) : '',
 				'FBC_ALLOW_OUT_OF_COUNTRY_LOGINS'	=> (bool) $this->config['phpbbservices_filterbycountry_allow_out_of_country_logins'],
-				'FBC_ALLOW_RESTRICT'				=> (int) $this->config['phpbbservices_filterbycountry_allow'],
+				'FBC_ALLOW_RESTRICT'				=> (bool) $this->config['phpbbservices_filterbycountry_allow'],
 				'FBC_IGNORE_BOTS'					=> (bool) $this->config['phpbbservices_filterbycountry_ignore_bots'],
 				'FBC_IP_NOT_FOUND_ALLOW_RESTRICT'	=> (bool) $this->config['phpbbservices_filterbycountry_ip_not_found_allow'],
 				'FBC_KEEP_STATISTICS'				=> (bool) $this->config['phpbbservices_filterbycountry_keep_statistics'],
@@ -218,11 +204,11 @@ class acp_controller
 				$date_start = $this->request->variable('date_start', ''); // Format: yyyy-mm-dd
 				$date_end = $this->request->variable('date_end', ''); // Format: yyyy-mm-dd
 
-				if ($date_start != '' && $date_end != '')
+				if ($date_start !== '' && $date_end !== '')
 				{
 					// Since $date_end will render a timestamp for midnight (00:00:00) let's take it to the end of the day (23:59:59)
 					$date_end_ts = (int) (strtotime($date_end) + (24 * 60 * 60) - 1);
-					$sql_where = ' WHERE timestamp >= ' . strtotime($date_start) . ' AND timestamp <= ' . $date_end_ts;
+					$sql_where = ' WHERE timestamp >= ' . (int) strtotime($date_start) . ' AND timestamp <= ' . (int) $date_end_ts;
 					$text_range = $this->language->lang('ACP_FBC_FROM') . $date_start . $this->language->lang('ACP_FBC_TO') . $date_end;
 				}
 				else
@@ -324,7 +310,6 @@ class acp_controller
 					$xml_countries = $dom->getElementsByTagName('option');
 
 					// Add unknown at the top of the countries array
-					$countries = array();
 					$countries[constants::ACP_FBC_COUNTRY_NOT_FOUND] = $this->language->lang('ACP_FBC_UNKNOWN');
 
 					foreach ($xml_countries as $xml_country)

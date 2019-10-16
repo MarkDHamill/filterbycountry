@@ -233,7 +233,7 @@ class common
 			}
 			next($xml_countries);
 		}
-		return $this->language->lang('FBC_UNKNOWN');
+		return $this->language->lang('ACP_FBC_UNKNOWN');
 
 	}
 

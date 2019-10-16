@@ -26,6 +26,5 @@ class constants {
 	const ACP_FBC_LAST_30_MINUTES_VALUE = 11;
 	const ACP_FBC_LAST_15_MINUTES_VALUE = 12;
 	const ACP_FBC_STATS_TABLE = 'fbc_stats';
-	const ACP_FBC_VPN_ONLY = 2;
 
 }

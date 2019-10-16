@@ -1,6 +1,6 @@
 {% if S_INCLUDE_FBC_JS %}
-{% if not definition.INCLUDED_FBCJS %}
-{% DEFINE INCLUDED_FBCJS = true %}
+{% if not definition.INCLUDED_JQUERYUI1121JS %}
+{% DEFINE INCLUDED_JQUERYUI1121JS = true %}
 {% INCLUDEJS '@phpbbservices_filterbycountry/jquery-ui-1.12.1.min.js' %}
 <script>
 	var countryCodes = "{{ COUNTRY_CODES }}";
@@ -12,13 +12,7 @@
 				$(this).prop('selected', true);
 			};
 		});
-		// If the setting is to ignore country codes, disable the select control too
-		if ($('input[name=phpbbservices_filterbycountry_allow]:checked', '#phpbbservices_filterbycountry_acp').val() == 2) {
-			$('#phpbbservices_filterbycountry_country_codes').prop('disabled', 'disabled');
-		} else {
-			$('#phpbbservices_filterbycountry_country_codes').prop('disabled', false);
-		}
-		// When reset button is pressed, this logic will unselect all country codes
+		// When unselect all countries button is pressed, this logic is executed
 		$("#unselect_options").click(function() {
 			$("#phpbbservices_filterbycountry_country_codes option").each(function() {
 				$(this).prop('selected', false);
