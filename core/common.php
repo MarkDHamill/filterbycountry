@@ -3,7 +3,7 @@
  *
  * Filter by country. An extension for the phpBB Forum Software package.
  *
- * @copyright (c) 2019, Mark D. Hamill, https://www.phpbbservices.com
+ * @copyright (c) 2020, Mark D. Hamill, https://www.phpbbservices.com
  * @license GNU General Public License, version 2 (GPL-2.0)
  *
  */
@@ -51,20 +51,25 @@ class common
 		//
 		// Parameters:
 		//   $update_database - if true, database is destroyed and recreated, done if called by a cron
-		//
-		// Steps:
-		//
-		// 1. Create directories if needed or if directed
-		// 2. Checks for the MaxMind country database. If it exists in the right place, exit successfully.
-		// 3. Otherwise fetches the database from maxmind.com using curl, which is in a .tar.gz file
-		// 4. Extracts the .mmdb file from the tar.gz file
-		// 5. Moves the .mmdb file to the parent database
-		// 6. Removes all other files and directories in this directory
+
+		// If on the settings page, we return true, otherwise, the screen can't come up to enter a new or corrected license key.
+		if (stripos($this->user->page['query_string'], 'mode=settings'))
+		{
+			return true;
+		}
+		else
+		{
+			// If the license key is blank or not 16 characters, the database cannot be downloaded, so exit this function.
+			if (strlen(trim($this->config['phpbbservices_filterbycountry_license_key'])) !== 16)
+			{
+				return false;
+			}
+		}
 
 		// Some useful paths
-		$maxmind_url = 'https://geolite.maxmind.com/download/geoip/database/GeoLite2-Country.tar.gz';	// Location of country database on the web
+		$maxmind_url = 'https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-Country&license_key=' . trim($this->config['phpbbservices_filterbycountry_license_key']) . '&suffix=tar.gz';
 		$extension_store_directory = $this->phpbb_root_path . 'store/phpbbservices/filterbycountry';
-		$database_gz_file_path = $extension_store_directory . '/GeoLite2-Country.tar.gz';
+		$database_gz_file_path = $extension_store_directory . '/GeoLite2-Country.gz';
 
 		// Create the directories needed, if they don't exist
 		if ($update_database)
@@ -107,7 +112,8 @@ class common
 			return false;
 		}
 
-		// Since a copy of the database is not downloaded, fetch the database from maxmind.com using curl, which downloads a .tar.gz file
+		// Since a copy of the database is not downloaded, fetch the database from maxmind.com using curl, which downloads a .tar.gz file as a .gz file
+		// First set up a mechanism to capture the remotely copied file on the local machine.
 		$fp = fopen($database_gz_file_path, 'w+');
 		if (!$fp)
 		{
@@ -115,12 +121,14 @@ class common
 			return false;
 		}
 
+		// Configure curl to work optimally with fetching a MaxMind database
 		$ch = curl_init();
-		curl_setopt($ch, CURLOPT_URL, $maxmind_url);		// Fetch from here
+		curl_setopt($ch, CURLOPT_URL, $maxmind_url);		// Fetch using this URL
 		curl_setopt($ch, CURLOPT_HEADER, 0);		// MaxMind server doesn't need HTTP headers
 		curl_setopt($ch, CURLOPT_FILE, $fp);				// Write file here
 
-		$success = curl_exec($ch);		// Get the database and write to a file
+		// Get the database over the internet and write it to a file
+		$success = curl_exec($ch);
 		if (!$success)
 		{
 			$this->phpbb_log->add(LOG_CRITICAL, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_FOPEN_ERROR', false, array($database_gz_file_path));
@@ -130,33 +138,52 @@ class common
 		// Get the HTTP status code
 		$status_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
-		if (!($status_code == 200 || $status_code == 304))	// 304 = unchanged
+		// Handle unauthorized fetches of the database. MaxMind returns a HTTP 401 in this event.
+		if ($status_code == 401)
 		{
-			$this->phpbb_log->add(LOG_CRITICAL, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_FOPEN_ERROR', false, array($database_gz_file_path));
+			// The license key is bad. Mark that it is invalid.
+			$this->config['phpbbservices_filterbycountry_license_key_valid'] = 0;
+
+			// A file GeoLite2-Country.gz should be in /store/phpbbservices/filterbycountry. But it's bogus because of the 401 error and is only 20 bytes or so.
+			// To keep things kosher, it should be deleted.
+			@unlink($database_gz_file_path);
+
+			// In this case we'll return true, but only when in the ACP settings interface. Otherwise, the screen can't come up to enter a corrected license key.
+			return stripos($this->user->page['query_string'], 'mode=settings') ? true : false;
+		}
+
+		// If the database was fetched successfully or hasn't changed, that's good. Otherwise, it's bad so we need to capture this and do more error handling.
+		if (!($status_code == 200 || $status_code == 304))
+		{
+			$this->phpbb_log->add(LOG_CRITICAL, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_HTTP_ERROR', false, array($status_code));
 			return false;
 		}
 
+		// Curl clean up
 		curl_close($ch);
 		fclose($fp);
 
-		// Now, extract the database. It will create a directory in store/phpbbservices/filterbycountry. The directory
-		// name includes the date the tarball was created. Note that the .tar file does not need to be extracted first.
-		// The PharData::extractTo() does both steps, but does create a subdirectory we don't want.
-		$p = new \PharData($database_gz_file_path);
+		// The database should have been retrieved successfully at this point, so we can assume the license key is valid.
+		$this->config['phpbbservices_filterbycountry_license_key_valid'] = 1;
+
+		// Now, extract the database. Note that the .tar file inside the .gz file does not need to be extracted first. PharData::extractTo()
+		// does both steps, but does create a subdirectory inside /store/phpbbservices/filterbycountry we don't want.
 		try
 		{
+			$p = new \PharData($database_gz_file_path);
 			$p->extractTo($extension_store_directory);
 		}
 		catch (\Exception $e)
 		{
+			// Extract failed, most likely because the .gz file is not in a valid .gz format
 			$this->phpbb_log->add(LOG_CRITICAL, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_EXTRACT_ERROR', false, array($database_gz_file_path, $extension_store_directory, $e->getCode()));
 			return false;
 		}
 
 		// Find the directory with the database. There should only be this one new directory in
 		// store/phpbbservices/filterbycountry. The directory name is based on the date the database was refreshed, like
-		// GeoLite2-Country_20190730. The database is inside it.
-		$found_tarball_dir = false;
+		// GeoLite2-Country_20200107. The database is inside it.
+		$found_directory = false;
 		if ($dh = opendir($extension_store_directory))
 		{
 			while (($file = readdir($dh)) !== false)
@@ -164,15 +191,16 @@ class common
 				if ($file != "." && $file != ".." && is_dir($extension_store_directory . '/' . $file) && stristr($file, 'GeoLite2-Country'))
 				{
 					$tarball_dir = $extension_store_directory . '/' . $file;
-					$found_tarball_dir = true;
+					$found_directory = true;
 					break;
 				}
 			}
 			closedir($dh);
 		}
 
-		if (!$found_tarball_dir)
+		if (!$found_directory)
 		{
+			// No directory was found inside store/phpbbservices/filterbycountry, which is weird, so it's an error to be handled.
 			$this->phpbb_log->add(LOG_CRITICAL, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_TARBALL_MOVE_ERROR', false, array($tarball_dir .'/GeoLite2-Country.mmdb'));
 			return false;
 		}
@@ -218,7 +246,7 @@ class common
 	public function get_country_name ($country_code)
 	{
 
-		// Gets the name of the country in the user's language. What's returned by MaxMind is the country name in English.
+		// Gets the name of the country in the user's language. What's returned by MaxMind is the country's name in English.
 
 		$dom = new \DOMDocument();
 		$dom->loadHTML('<?xml encoding="utf-8" ?>' . $this->language->lang('ACP_FBC_OPTIONS')); // Encoding fix by EA117

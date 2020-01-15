@@ -8,7 +8,9 @@ Go to "ACP" > "Customise" > "Extensions" and enable the "Filter by country" exte
 
 ## License
 
-This product includes GeoLite2 data created by MaxMind, available from <a href="https://www.maxmind.com">https://www.maxmind.com</a>. GeoLite software is included in the /vendor directory. After installation, the GeoLite2 Country database is placed in the /store/phppbbservices/filterbycountry directory. This database is updated approximately once a week using phpBB's cron feature.
+This product includes GeoLite2 data created by MaxMind, available from <a href="https://www.maxmind.com">https://www.maxmind.com</a>. 
+
+GeoLite software is included in the /vendor directory. After installation, the GeoLite2 Country database is placed in the /store/phppbbservices/filterbycountry directory. This database is updated approximately once a week using phpBB's cron feature.
 
 The following license applies to the remaining software in this extension:
 

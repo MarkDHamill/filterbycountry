@@ -3,7 +3,7 @@
  *
  * Filter by country. An extension for the phpBB Forum Software package.
  *
- * @copyright (c) 2019, Mark D. Hamill, https://www.phpbbservices.com
+ * @copyright (c) 2020, Mark D. Hamill, https://www.phpbbservices.com
  * @license GNU General Public License, version 2 (GPL-2.0)
  *
  */
@@ -108,6 +108,9 @@ class acp_controller
 			{
 				if ($mode == 'settings')
 				{
+					// Save the setting for the license key
+					$this->config->set('phpbbservices_filterbycountry_license_key', $this->request->variable('phpbbservices_filterbycountry_license_key', ''));
+
 					// Save the setting for selected countries to be either allowed or restricted
 					$this->config->set('phpbbservices_filterbycountry_allow', $this->request->variable('phpbbservices_filterbycountry_allow', 0));
 
@@ -159,8 +162,8 @@ class acp_controller
 
 		$s_errors = !empty($errors);
 
-		// First test if the GeoLite2-Country-Country.mmdb database exists in /store/phpbbservices/filterbycountry directory.
-		// If it doesn't, the function will create the directory and populate it
+		// First, test if the GeoLite2-Country-Country.mmdb database exists in /store/phpbbservices/filterbycountry directory.
+		// If it doesn't, the function will create the directory and populate it, if it can.
 
 		$database_mmdb_file_path = $this->phpbb_root_path . 'store/phpbbservices/filterbycountry/GeoLite2-Country.mmdb';
 		if (!file_exists($database_mmdb_file_path))
@@ -176,6 +179,13 @@ class acp_controller
 		// Set output variables for display in the template
 		if ($mode == 'settings')
 		{
+
+			if ($this->config['phpbbservices_filterbycountry_license_key_valid'] == 0 || strlen(trim($this->config['phpbbservices_filterbycountry_license_key'])) !== 16)
+			{
+				$errors[] = $this->language->lang('ACP_FBC_INVALID_LICENSE_KEY');
+				$s_errors = true;
+			}
+
 			$this->template->assign_vars(array(
 				'COUNTRY_CODES' 					=> $this->config_text->get('phpbbservices_filterbycountry_country_codes'),	// Processed by the Javascript
 				'ERROR_MSG'     					=> $s_errors ? implode('<br />', $errors) : '',
@@ -184,6 +194,7 @@ class acp_controller
 				'FBC_IGNORE_BOTS'					=> (bool) $this->config['phpbbservices_filterbycountry_ignore_bots'],
 				'FBC_IP_NOT_FOUND_ALLOW_RESTRICT'	=> (bool) $this->config['phpbbservices_filterbycountry_ip_not_found_allow'],
 				'FBC_KEEP_STATISTICS'				=> (bool) $this->config['phpbbservices_filterbycountry_keep_statistics'],
+				'FBC_LICENSE_KEY'					=> $this->config['phpbbservices_filterbycountry_license_key'],
 				'FBC_LOG_ACCESS_ERRORS'				=> (bool) $this->config['phpbbservices_filterbycountry_log_access_errors'],
 
 				'S_ERROR'				=> $s_errors,
@@ -192,6 +203,7 @@ class acp_controller
 
 				'U_ACTION' 		=> $this->u_action,
 			));
+
 		}
 		else if ($mode == 'stats')
 		{

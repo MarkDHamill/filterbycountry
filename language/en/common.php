@@ -3,7 +3,7 @@
  *
  * Filter by country. An extension for the phpBB Forum Software package.
  *
- * @copyright (c) 2019, Mark D. Hamill, https://www.phpbbservices.com
+ * @copyright (c) 2020, Mark D. Hamill, https://www.phpbbservices.com
  * @license GNU General Public License, version 2 (GPL-2.0)
  *
  */
@@ -52,7 +52,7 @@ $lang = array_merge($lang, array(
 	'ACP_FBC_COUNTRY_NAME'				=> 'Country name',
 	'ACP_FBC_COUNTRY_RESTRICTED_ASC'	=> 'Restricted page requests, least to greatest',
 	'ACP_FBC_COUNTRY_RESTRICTED_DESC'	=> 'Restricted page requests, greatest to least',
-	'ACP_FBC_CREATE_DATABASE_ERROR'		=> 'Unable to create the MaxMind country codes database. This may be due to insufficient permissions. The file permissions for the forum’s /store/phpbbservices folder should be set to publicly writeable (777 on Unix-based systems).',
+	'ACP_FBC_CREATE_DATABASE_ERROR'		=> 'Unable to create the MaxMind country codes database. This may be due to insufficient permissions or an invalid license key. The file permissions for the forum’s /store/phpbbservices folder should be set to publicly writeable (777 on Unix-based systems).',
 	'ACP_FBC_CURRENT_RANGE'				=> 'Range of statistics shown',
 	'ACP_FBC_DATES_BEGINNING'			=> 'Or pick an absolute range of dates beginning',
 	'ACP_FBC_DATES_ENDING'				=> 'and ending',
@@ -64,6 +64,7 @@ $lang = array_merge($lang, array(
 	'ACP_FBC_IGNORE'					=> 'Ignore',
 	'ACP_FBC_IGNORE_BOTS'				=> 'Ignore known bots',
 	'ACP_FBC_IGNORE_BOTS_EXPLAIN'		=> 'If yes, statistics will not include your known bots, such as popular search engines. The bot might still be able to read the page depending on your other settings. You can see a list of bots in Manage groups.',
+	'ACP_FBC_INVALID_LICENSE_KEY'		=> 'Your license key is invalid. Enter a valid MaxMind license key.',
 	'ACP_FBC_KEEP_STATISTICS'			=> 'Keep statistics',
 	'ACP_FBC_KEEP_STATISTICS_EXPLAIN'	=> 'If yes, statistics are kept for the number of allowed and restricted page requests by country code. <em>Warning</em>: these statistics can use a lot of database space. <em>If you set this to no, all statistics are erased.</em>',
 	'ACP_FBC_LAST_1_HOURS'				=> 'In Last Hour',
@@ -77,6 +78,8 @@ $lang = array_merge($lang, array(
 	'ACP_FBC_LAST_QUARTER'				=> 'In Last 90 Days',
 	'ACP_FBC_LAST_TWO_WEEKS'			=> 'In Last 14 Days',
 	'ACP_FBC_LAST_WEEK'					=> 'In Last 7 Days',
+	'ACP_FBC_LICENSE_KEY'				=> 'MaxMind license key',
+	'ACP_FBC_LICENSE_KEY_EXPLAIN'		=> 'To use MaxMind’s GeoLite2 country code database, you must <a href="https://dev.maxmind.com/geoip/geoip2/geolite2/" target="_blank">acquire a license key</a>. You do <em>not</em> need to purchase a license. Enter the 16 character license key here. You must register on their site to acquire a license key.',
 	'ACP_FBC_LOG_ACCESS_ERRORS'			=> 'Log access errors',
 	'ACP_FBC_LOG_ACCESS_ERRORS_EXPLAIN'	=> 'If yes, any restricted IPs are logged in the admin log. This can result in very long logs.',
 	'ACP_FBC_MAXMIND_ERROR'				=> 'A call to the MaxMind country code database triggered an error. The database is most likely corrupt. You might want to inform the webmaster.',

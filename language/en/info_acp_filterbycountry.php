@@ -3,7 +3,7 @@
  *
  * Filter by country. An extension for the phpBB Forum Software package.
  *
- * @copyright (c) 2019, Mark D. Hamill, https://www.phpbbservices.com
+ * @copyright (c) 2020, Mark D. Hamill, https://www.phpbbservices.com
  * @license GNU General Public License, version 2 (GPL-2.0)
  *
  */
@@ -31,7 +31,7 @@ if (empty($lang) || !is_array($lang))
 // in a url you again do not need to specify an order e.g., 'Click %sHERE%s' is fine
 //
 // Some characters you may want to copy&paste:
-// ’ » “ “ …
+// » “ “ …
 //
 
 $lang = array_merge($lang, array(
@@ -40,7 +40,7 @@ $lang = array_merge($lang, array(
 	'ACP_FBC_STATS_TITLE'		=> 'Filter by country statistics',
 	'ACP_FBC_STATS_TITLE_EXPLAIN'	=> 'This page contains a report of page requests allowed or blocked by country since statistic were enabled for the extension. Use the up and down arrows to sort the column in either an ascending or descending sequence. <strong>If there were no page requests for a country, it is not shown. Statistics are available since %s only.</strong>',
 	'ACP_FBC_TITLE'				=> 'Filter by country settings',
-	'ACP_FBC_TITLE_EXPLAIN'		=> 'This extension allows you to filter traffic to your forum by country. MaxMind’s <a href="https://dev.maxmind.com/geoip/geoip2/geolite2/">GeoLite2 Free</a> country database is used to determine the country a user is coming from. It does this by inferring the country of origin from the IP address of the user. The database is updated every week automatically.',
+	'ACP_FBC_TITLE_EXPLAIN'		=> 'This extension allows you to filter traffic to your board by country. This product includes GeoLite2 data created by MaxMind, available from <a href="https://www.maxmind.com" target="_blank">https://www.maxmind.com</a>. Its GeoLite2 country database is refreshed every week automatically.',
 	'ACP_FBC_TITLE_SHORT'		=> 'Settings',
 
 	'LOG_ACP_FBC_BAD_ACCESS'				=> '<strong>Filter by country: %1s was denied board access from IP(s) %2s because access from country/countries “%3s“ is not allowed.',
@@ -50,8 +50,9 @@ $lang = array_merge($lang, array(
 	'LOG_ACP_FBC_DELETE_ERROR'				=> '<strong>Unable to delete %1$s. This may be due to insufficient permissions. Full public write permissions are needed.</strong>',
 	'LOG_ACP_FBC_EXTRACT_ERROR'				=> '<strong>Unable to extract %1$s to %2$s. An “%3$s” exception was thrown.</strong>',
 	'LOG_ACP_FBC_FILTERBYCOUNTRY_SETTINGS'	=> '<strong>Filter by country settings updated</strong>',
-	'LOG_ACP_FBC_FOPEN_ERROR'				=> '<strong>Could not open file: %1$s</strong>',
+	'LOG_ACP_FBC_FOPEN_ERROR'				=> '<strong>Could not download file: %1$s. The MaxMind service may be down temporarily.</strong>',
 	'LOG_ACP_FBC_GZIP_OPEN_ERROR'			=> '<strong>Could not open gzip file: %1$s</strong>',
+	'LOG_ACP_FBC_HTTP_ERROR'				=> '<strong>Could not download file: %1$s. An unexpected HTTP error code %1$s occurred.</strong>',
 	'LOG_ACP_FBC_MAXMIND_ERROR'				=> '<strong>A call to the MaxMind country code database triggered an error. The database is most likely corrupt.</strong>',
 	'LOG_ACP_FBC_READ_FILE_ERROR'			=> '<strong>No read permissions for file: %1$s</strong>',
 	'LOG_ACP_FBC_TARBALL_MOVE_ERROR'		=> '<strong>Could not move file: %1$s</strong>',

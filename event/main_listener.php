@@ -3,7 +3,7 @@
  *
  * Filter by country. An extension for the phpBB Forum Software package.
  *
- * @copyright (c) 2019, Mark D. Hamill, https://www.phpbbservices.com
+ * @copyright (c) 2020, Mark D. Hamill, https://www.phpbbservices.com
  * @license GNU General Public License, version 2 (GPL-2.0)
  *
  */
@@ -137,18 +137,22 @@ class main_listener implements EventSubscriberInterface
 
 		$user_ips = array();	// Found originating IPs in the HTTP headers go in this array.
 
-		// Change $test_mode to true if you want to use pseudo IPs for testing. Comment out the IPs you don't want to use.
+		// Change $test_mode to true if you want to use pseudo IPs for testing. Uncomment the IPs you want to use.
 		// In test mode, only the IPs in the $test_mode array are parsed. Actual HTTP headers are ignored.
 		$test_mode = false;
 		if ($test_mode)
 		{
-			$test_ips[] = '128.101.101.101';	// For testing, United States IP
+			//$test_ips[] = '128.101.101.101';	// For testing, United States IP
 			//$test_ips[] = '81.246.234.100';	// For testing, Belgian IP
 			//$test_ips[] = '23.226.133.164';	// For testing, known Nord VPN USA IP
 			//$test_ips[] = '111.111.111.111';	// For testing, should evaluate to JP (Japan)
 			//$test_ips[] = '222.222.222.222';	// For testing, should evaluate to CN (China)
 			//$test_ips[] = '33.33.33.33';		// For testing, should evaluate to US (United States)
 			//$test_ips[] = '44.44.44.44';		// For testing, should evaluate to US (United States)
+		}
+		else
+		{
+			$test_ips = array();
 		}
 
 		$error = false;        // Triggered if there is a MaxMind database issue, like it's corrupted.

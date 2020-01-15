@@ -14,6 +14,10 @@
 {% if S_SETTINGS %}
 		<legend>{{ lang('SETTINGS') }}</legend>
 		<dl>
+			<dt><label>{{ lang('ACP_FBC_LICENSE_KEY') ~ lang('COLON') }}</label><br>{{ lang('ACP_FBC_LICENSE_KEY_EXPLAIN') }}</dt>
+			<dd><label><input id="phpbbservices_filterbycountry_license_key" name="phpbbservices_filterbycountry_license_key" size="16" maxlength="16" type="text" value="{{ FBC_LICENSE_KEY }}"></label>
+		</dl>
+		<dl>
 			<dt><label>{{ lang('ACP_FBC_ALLOW_RESTRICT') ~ lang('COLON') }}</label><br>{{ lang('ACP_FBC_ALLOW_RESTRICT_EXPLAIN') }}</dt>
 			<dd><label><input type="radio" class="radio" name="phpbbservices_filterbycountry_allow" value="1"{% if FBC_ALLOW_RESTRICT == 1 %} checked="checked"{% endif %} /> {{ lang('ACP_FBC_ALLOW') }}</label>
 				<label><input type="radio" class="radio" name="phpbbservices_filterbycountry_allow" value="0"{% if FBC_ALLOW_RESTRICT == 0 %} checked="checked"{% endif %} /> {{ lang('ACP_FBC_RESTRICT') }}</label>
