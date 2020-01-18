@@ -74,6 +74,9 @@ class main_listener implements EventSubscriberInterface
 		$this->table_prefix = $table_prefix;
 		$this->user = $user;
 
+		$this->ip_allow_tracked = array();		// Tracks IP valid accesses written to the phpbb_fbc_stats table, so we only log an IP once for this moment. This approach supports multiuser access.
+		$this->ip_not_allow_tracked = array();	// Tracks IP invalid accesses logged, so we only log an IP once for this moment. This approach supports multiuser access.
+
 	}
 
 	/**
@@ -330,26 +333,34 @@ class main_listener implements EventSubscriberInterface
 			return;
 		}
 
-		static $ip_allow_tracked = array();		// Tracks IP valid accesses written to the phpbb_fbc_stats table, so we only log an IP once for this moment. This approach supports multiuser access.
-		static $ip_not_allow_tracked = array();	// Tracks IP invalid accesses logged, so we only log an IP once for this moment. This approach supports multiuser access.
+		$ips_of_interest = array();
+
+		// Get IPs in the $user_ips array, which contains additional metadata like country name and country code
+		foreach ($user_ips as $user_ip)
+		{
+			$ips_of_interest[] = $user_ip['ip'];
+		}
 
 		// Log the access to the phpbb_fbc_stats table, if so configured. We only log access once.
 		if ($this->config['phpbbservices_filterbycountry_keep_statistics'])
 		{
-			if ($allow_request)
+			foreach ($ips_of_interest as $ip_of_interest)
 			{
-				if (!in_array($user_ips, $ip_allow_tracked))
+				if ($allow_request)
 				{
-					$ip_allow_tracked[] = $user_ips;    // In case of multiuser access, want to log access once only for each IP
-					$this->save_access($user_ips, $allow_request);
+					if (!in_array($ip_of_interest, $this->ip_allow_tracked))
+					{
+						$this->ip_allow_tracked[] = $ip_of_interest;    // In case of multiuser access, want to log access once only for each IP
+						$this->save_access($user_ips, $allow_request);
+					}
 				}
-			}
-			else
-			{
-				if (!in_array($user_ips, $ip_not_allow_tracked))
+				else
 				{
-					$ip_not_allow_tracked[] = $user_ips;    // In case of multiuser access, want to log access once only for each IP
-					$this->save_access($user_ips, $allow_request);
+					if (!in_array($ip_of_interest, $this->ip_not_allow_tracked))
+					{
+						$this->ip_not_allow_tracked[] = $ip_of_interest;    // In case of multiuser access, want to log access once only for each IP
+						$this->save_access($user_ips, $allow_request);
+					}
 				}
 			}
 		}

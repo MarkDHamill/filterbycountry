@@ -21,7 +21,7 @@ class ext extends \phpbb\extension\base
 
 		if (
 			phpbb_version_compare($config['version'], '3.2.0', '>=') &&
-			phpbb_version_compare($config['version'], '3.3', '<') &&
+			phpbb_version_compare($config['version'], '4.0', '<') &&
 			ini_get('allow_url_fopen') &&
 			extension_loaded('curl') &&
 			extension_loaded('dom') &&
