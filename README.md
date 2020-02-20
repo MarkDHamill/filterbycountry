@@ -6,6 +6,8 @@ Copy the extension to phpBB/ext/phpbbservices/filterbycountry
 
 Go to "ACP" > "Customise" > "Extensions" and enable the "Filter by country" extension.
 
+A Dutch translation maintained by </Solidjeuh> is available here: https://www.supportforum.be.
+
 ## License
 
 This product includes GeoLite2 data created by MaxMind, available from <a href="https://www.maxmind.com">https://www.maxmind.com</a>. 

@@ -209,13 +209,16 @@ class main_listener implements EventSubscriberInterface
 					else
 					{
 						// IP is not valid
-						if (!$test_mode)
+						if ($this->config['phpbbservices_filterbycountry_log_access_errors'])
 						{
-							$this->log->add(LOG_ADMIN, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_BAD_IP', false, array($ip, $ip_key, $this->user->data['username']));
-						}
-						else
-						{
-							$this->log->add(LOG_ADMIN, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_BAD_IP', false, array($ip, 'HTTP_TEST_HEADER', $this->user->data['username']));
+							if (!$test_mode)
+							{
+								$this->log->add(LOG_ADMIN, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_BAD_IP', false, array($ip, $ip_key, $this->user->data['username']));
+							}
+							else
+							{
+								$this->log->add(LOG_ADMIN, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_BAD_IP', false, array($ip, 'HTTP_TEST_HEADER', $this->user->data['username']));
+							}
 						}
 					}
 
