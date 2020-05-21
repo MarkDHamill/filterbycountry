@@ -33,6 +33,7 @@ class main_listener implements EventSubscriberInterface
 	protected $config;
 	protected $config_text;
 	protected $db;
+	protected $filesystem;
 	protected $helper;
 	protected $language;
 	protected $log;
@@ -56,15 +57,17 @@ class main_listener implements EventSubscriberInterface
 	 * @param \phpbbservices\filterbycountry\core\common 	$helper				Extension's helper object
 	 * @param \phpbb\db\driver\factory 						$db 				The database factory object
 	 * @param string										$table_prefix 		Prefix for phpbb's database tables
+	 * @param \phpbb\filesystem 							$filesystem			The filesystem object
 	 *
 	 */
 
-	public function __construct(\phpbb\language\language $language, \phpbb\request\request $request, $phpbb_root_path, $php_ext, \phpbb\config\config $config, \phpbb\log\log $log, \phpbb\user $user, \phpbb\config\db_text $config_text, \phpbbservices\filterbycountry\core\common $helper, \phpbb\db\driver\factory $db, $table_prefix)
+	public function __construct(\phpbb\language\language $language, \phpbb\request\request $request, $phpbb_root_path, $php_ext, \phpbb\config\config $config, \phpbb\log\log $log, \phpbb\user $user, \phpbb\config\db_text $config_text, \phpbbservices\filterbycountry\core\common $helper, \phpbb\db\driver\factory $db, $table_prefix, \phpbb\filesystem\filesystem $filesystem)
 	{
 
 		$this->config = $config;
 		$this->config_text = $config_text;
 		$this->db = $db;
+		$this->filesystem = $filesystem;
 		$this->helper = $helper;
 		$this->language = $language;
 		$this->log = $log;
@@ -92,7 +95,7 @@ class main_listener implements EventSubscriberInterface
 		// Get the country code(s) based on the user's IP. Based on it, determine whether its traffic should be allowed or
 		// denied.
 
-		// Country code checking is ignored inside the Administration Control Panel
+		// Country code checking is ignored (and meaningless) inside the Administration Control Panel
 		if (defined('ADMIN_START'))
 		{
 			return;
@@ -103,7 +106,7 @@ class main_listener implements EventSubscriberInterface
 		$this->language->add_lang('common','phpbbservices/filterbycountry');
 
 		$database_mmdb_file_path = $this->phpbb_root_path . 'store/phpbbservices/filterbycountry/GeoLite2-Country.mmdb';
-		if (!file_exists($database_mmdb_file_path))
+		if (!$this->filesystem->exists($database_mmdb_file_path))
 		{
 			// If the database doesn't exist (first time), create it. Note: if the database cannot be created, the
 			// function returns false. In this case, rather than disrupt the board we simply exit the function. The
@@ -115,15 +118,15 @@ class main_listener implements EventSubscriberInterface
 		}
 
 		// Get ignore bots setting and determine if it should be applied
-		$ignore_bots = (($this->user->data['user_type'] == USER_IGNORE) && ($this->config['phpbbservices_filterbycountry_ignore_bots'] == 1)) ? true : false;
+		$ignore_bots = (($this->user->data['user_type'] == USER_IGNORE) && ($this->config->offsetGet('phpbbservices_filterbycountry_ignore_bots') == 1)) ? true : false;
 
 		// Get a list of country codes of interest and place in an array for easy processing
 		$country_codes = explode(',', $this->config_text->get('phpbbservices_filterbycountry_country_codes'));
 
 		// Allow (1) or restrict (0) country codes?
-		$allow = (bool) $this->config['phpbbservices_filterbycountry_allow'];
+		$allow = (bool) $this->config->offsetGet('phpbbservices_filterbycountry_allow');
 
-		// Hook in the MaxMind country code database.
+		// Hook in the MaxMind country code database interface.
 		include($this->phpbb_root_path . 'vendor/autoload.php');
 		$reader = new Reader($this->phpbb_root_path . 'store/phpbbservices/filterbycountry/GeoLite2-Country.mmdb');
 
@@ -158,7 +161,7 @@ class main_listener implements EventSubscriberInterface
 			$test_ips = array();
 		}
 
-		$error = false;        // Triggered if there is a MaxMind database issue, like it's corrupted.
+		$error = false;        // Set if there is a MaxMind database issue, like it's corrupted.
 		$index = count($user_ips);
 
 		// Examine all relevant HTTP headers and create an array of all originating IP addresses in these headers.
@@ -171,7 +174,7 @@ class main_listener implements EventSubscriberInterface
 				foreach ($ip_array as $ip)
 				{
 
-					if (filter_var($ip, FILTER_VALIDATE_IP))
+					if (filter_var($ip, FILTER_VALIDATE_IP))	// Invalid IPs are ignored. Seems many of these HTTP headers don't place valid IPs in them.
 					{
 						// Valid IPV4 or IPV6 IP
 						$user_ips[$index]['ip'] = $ip;
@@ -206,21 +209,6 @@ class main_listener implements EventSubscriberInterface
 						}
 						$index++;
 					}
-					else
-					{
-						// IP is not valid
-						if ($this->config['phpbbservices_filterbycountry_log_access_errors'])
-						{
-							if (!$test_mode)
-							{
-								$this->log->add(LOG_ADMIN, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_BAD_IP', false, array($ip, $ip_key, $this->user->data['username']));
-							}
-							else
-							{
-								$this->log->add(LOG_ADMIN, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_BAD_IP', false, array($ip, 'HTTP_TEST_HEADER', $this->user->data['username']));
-							}
-						}
-					}
 
 				}
 
@@ -235,7 +223,7 @@ class main_listener implements EventSubscriberInterface
 		if ($error)
 		{
 			// In the case of a serious error like a corrupt database, we need to log the event. However, we don't want
-			// to take down the board.  All traffic is thus allowed if this occurs.
+			// to disable all access to the board.  All traffic is thus allowed if this occurs.
 			$this->log->add(LOG_CRITICAL, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_MAXMIND_ERROR');
 			return;
 		}
@@ -250,7 +238,7 @@ class main_listener implements EventSubscriberInterface
 
 		$allow_request = true;
 
-		// We have one or more IPs in an array that represent where the user is coming from. We will operate in a paranoid
+		// We have one or more IPs in an array that represent potential countries where the user is coming from. We will operate in a paranoid
 		// mode: if allowed countries is set and any of the countries is not in the list of approved countries, we reject
 		// the request. If not allowed countries is set and any of the countries is on this list, we reject the request.
 		// We will use a bitwise AND: if any IP is not allowed, $allow_request will flip from true to false, rejecting the
@@ -279,7 +267,7 @@ class main_listener implements EventSubscriberInterface
 
 		}
 
-		if (!$allow_request && $this->config['phpbbservices_filterbycountry_allow_out_of_country_logins'])
+		if (!$allow_request && $this->config->offsetGet('phpbbservices_filterbycountry_allow_out_of_country_logins'))
 		{
 			// In this condition, you can access the board if you are an actively registered user and are already
 			// logged in, as evidenced by the user_type, which won't be set for normal users and founders unless
@@ -306,7 +294,7 @@ class main_listener implements EventSubscriberInterface
 		if (!$allow_request)
 		{
 			// Not allowed to see board content, so present warning message. Provide a login link if allowed.
-			if ($this->config['phpbbservices_filterbycountry_allow_out_of_country_logins'])
+			if ($this->config->offsetGet('phpbbservices_filterbycountry_allow_out_of_country_logins'))
 			{
 				@trigger_error($this->language->lang('ACP_FBC_DENY_ACCESS_LOGIN', $this->get_disallowed_countries($user_ips), $this->phpbb_root_path . "ucp.$this->phpEx?mode=login"), E_USER_WARNING);
 			}
@@ -328,7 +316,6 @@ class main_listener implements EventSubscriberInterface
 		//		$user_ips = An array of originating IPs found in this request
 		//		$allow_request = flag whether IP is allowed or not
 		//		$ignore_bots = indicates if this is a known bot and the bot should be ignored in the statistics
-
 		if ($ignore_bots)
 		{
 			// Don't capture any bot statistics if this is enabled. This doesn't mean the bot can't read the page,
@@ -345,7 +332,7 @@ class main_listener implements EventSubscriberInterface
 		}
 
 		// Log the access to the phpbb_fbc_stats table, if so configured. We only log access once.
-		if ($this->config['phpbbservices_filterbycountry_keep_statistics'])
+		if ($this->config->offsetGet('phpbbservices_filterbycountry_keep_statistics'))
 		{
 			foreach ($ips_of_interest as $ip_of_interest)
 			{
@@ -456,7 +443,7 @@ class main_listener implements EventSubscriberInterface
 		}
 
 		// Log the request if logging is enabled. Only restricted attempts are logged.
-		if ($this->config['phpbbservices_filterbycountry_log_access_errors'] && !$allow_request)
+		if ($this->config->offsetGet('phpbbservices_filterbycountry_log_access_errors') && !$allow_request)
 		{
 			$this->log->add(LOG_ADMIN, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_BAD_ACCESS', false, array($this->user->data['username'], $this->get_disallowed_ips($user_ips), $this->get_disallowed_countries($user_ips)));
 		}

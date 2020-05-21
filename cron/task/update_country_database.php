@@ -41,12 +41,12 @@ class update_country_database extends \phpbb\cron\task\base
 
 	public function should_run()
 	{
-		// The Maxmind country database is updated weekly on Tuesdays. For our purposes, we'll assume a fresh database exists on Wednesdays.
+		// The Maxmind country database is updated weekly on Tuesdays. To account for timezones, we'll assume a fresh database exists on Wednesdays.
 		// So to update the database, it must be on or after Wednesday and at least 7 days must have elapsed since the database was last updated.
 		// If for some reason the config variable phpbbservices_filterbycountry_cron_task_last_gc is set to 0, it's back in its initial state
 		// so the cron should fetch the database.
 
-		$todays_dow = date('w');	// 0 = Sunday, 6 = Saturday
+		$todays_dow = date('w');	// 0 = Sunday, 6 = Saturday, so 3 = Wednesday
 		$last_run = (int) $this->config['phpbbservices_filterbycountry_cron_task_last_gc'];
 		$days_difference = floor((float) ((time() - $last_run) / (24 * 60 * 60)));
 
@@ -58,8 +58,7 @@ class update_country_database extends \phpbb\cron\task\base
 
 		// Updates the MaxMind country database via a phpBB cron
 
-		// Destroy current database, then download, ungzip, untar and stage an updated database. In cron mode, errors are placed in the admin log.
-		// An email may be sent to founders too.
+		// Destroy current database, then download, ungzip, untar and stage an updated database. In cron mode, errors are placed in the phpBB log.
 		$this->helper->download_maxmind(true);
 
 		// If for some reason downloading the MaxMind database fails, let's not lock up other crons. So let's always return true to cron.php to preclude this.

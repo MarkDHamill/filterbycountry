@@ -15,6 +15,7 @@ services:
             - '@phpbbservices.filterbycountry.common'
             - '@dbal.conn'
             - '%core.table_prefix%'
+            - '@filesystem'
         tags:
             - { name: event.listener }
     phpbbservices.filterbycountry.common:
@@ -25,6 +26,7 @@ services:
             - '@config'
             - '@log'
             - '@user'
+            - '@filesystem'
     phpbbservices.filterbycountry.controller.acp:
         class: phpbbservices\filterbycountry\controller\acp_controller
         arguments:
@@ -40,6 +42,7 @@ services:
             - '%core.table_prefix%'
             - '%core.root_path%'
             - '%core.php_ext%'
+            - '@filesystem'
     phpbbservices.filterbycountry.service:
         class: phpbbservices\filterbycountry\service
         arguments:

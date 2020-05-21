@@ -21,6 +21,7 @@ class acp_controller
 	protected $config;
 	protected $config_text;
 	protected $db;
+	protected $filesystem;
 	protected $helper;
 	protected $language;
 	protected $log;
@@ -47,13 +48,15 @@ class acp_controller
 	 * @param string										$table_prefix 		Prefix for phpbb's database tables
 	 * @param string										$phpbb_root_path	Relative path to phpBB root
 	 * @param string                   						$php_ext         	PHP file suffix
+	 * @param \phpbb\filesystem 							$filesystem			The filesystem object
 	 */
-	public function __construct(\phpbb\config\config $config, \phpbb\language\language $language, \phpbb\log\log $log, \phpbb\request\request $request, \phpbb\template\template $template, \phpbb\user $user, \phpbb\config\db_text $config_text, \phpbbservices\filterbycountry\core\common $helper, \phpbb\db\driver\factory $db, $table_prefix, $phpbb_root_path, $php_ext)
+	public function __construct(\phpbb\config\config $config, \phpbb\language\language $language, \phpbb\log\log $log, \phpbb\request\request $request, \phpbb\template\template $template, \phpbb\user $user, \phpbb\config\db_text $config_text, \phpbbservices\filterbycountry\core\common $helper, \phpbb\db\driver\factory $db, $table_prefix, $phpbb_root_path, $php_ext, \phpbb\filesystem\filesystem $filesystem)
 	{
 
 		$this->config	= $config;
 		$this->config_text = $config_text;
 		$this->db 		= $db;
+		$this->filesystem = $filesystem;
 		$this->helper 	= $helper;
 		$this->language	= $language;
 		$this->log		= $log;
@@ -166,7 +169,7 @@ class acp_controller
 		// If it doesn't, the function will create the directory and populate it, if it can.
 
 		$database_mmdb_file_path = $this->phpbb_root_path . 'store/phpbbservices/filterbycountry/GeoLite2-Country.mmdb';
-		if (!file_exists($database_mmdb_file_path))
+		if (!$this->filesystem->exists($database_mmdb_file_path))
 		{
 			// If the database doesn't exist (first time), create it. Note: if the database cannot be created, the
 			// function returns false. In this case, we draw attention to the issue so the underlying problem can be fixed.
@@ -180,7 +183,9 @@ class acp_controller
 		if ($mode == 'settings')
 		{
 
-			if ($this->config['phpbbservices_filterbycountry_license_key_valid'] == 0 || strlen(trim($this->config['phpbbservices_filterbycountry_license_key'])) !== 16)
+			// Populate the settings page fields
+
+			if ($this->config->offsetGet('phpbbservices_filterbycountry_license_key_valid') == 0 || strlen(trim($this->config->offsetGet('phpbbservices_filterbycountry_license_key'))) !== 16)
 			{
 				$errors[] = $this->language->lang('ACP_FBC_INVALID_LICENSE_KEY');
 				$s_errors = true;
@@ -188,27 +193,30 @@ class acp_controller
 
 			$this->template->assign_vars(array(
 				'COUNTRY_CODES' 					=> $this->config_text->get('phpbbservices_filterbycountry_country_codes'),	// Processed by the Javascript
-				'ERROR_MSG'     					=> $s_errors ? implode('<br />', $errors) : '',
-				'FBC_ALLOW_OUT_OF_COUNTRY_LOGINS'	=> (bool) $this->config['phpbbservices_filterbycountry_allow_out_of_country_logins'],
-				'FBC_ALLOW_RESTRICT'				=> (bool) $this->config['phpbbservices_filterbycountry_allow'],
-				'FBC_IGNORE_BOTS'					=> (bool) $this->config['phpbbservices_filterbycountry_ignore_bots'],
-				'FBC_IP_NOT_FOUND_ALLOW_RESTRICT'	=> (bool) $this->config['phpbbservices_filterbycountry_ip_not_found_allow'],
-				'FBC_KEEP_STATISTICS'				=> (bool) $this->config['phpbbservices_filterbycountry_keep_statistics'],
-				'FBC_LICENSE_KEY'					=> $this->config['phpbbservices_filterbycountry_license_key'],
-				'FBC_LOG_ACCESS_ERRORS'				=> (bool) $this->config['phpbbservices_filterbycountry_log_access_errors'],
+				'COUNTRY_CODES' 					=> $this->config_text->get('phpbbservices_filterbycountry_country_codes'),	// Processed by the Javascript
+				'ERROR_MSG'     					=> $s_errors ? implode('<br>', $errors) : '',
+				'FBC_ALLOW_OUT_OF_COUNTRY_LOGINS'	=> (bool) $this->config->offsetGet('phpbbservices_filterbycountry_allow_out_of_country_logins'),
+				'FBC_ALLOW_RESTRICT'				=> (bool) $this->config->offsetGet('phpbbservices_filterbycountry_allow'),
+				'FBC_IGNORE_BOTS'					=> (bool) $this->config->offsetGet('phpbbservices_filterbycountry_ignore_bots'),
+				'FBC_IP_NOT_FOUND_ALLOW_RESTRICT'	=> (bool) $this->config->offsetGet('phpbbservices_filterbycountry_ip_not_found_allow'),
+				'FBC_KEEP_STATISTICS'				=> (bool) $this->config->offsetGet('phpbbservices_filterbycountry_keep_statistics'),
+				'FBC_LICENSE_KEY'					=> $this->config->offsetGet('phpbbservices_filterbycountry_license_key'),
+				'FBC_LOG_ACCESS_ERRORS'				=> (bool) $this->config->offsetGet('phpbbservices_filterbycountry_log_access_errors'),
 
-				'S_ERROR'				=> $s_errors,
-				'S_INCLUDE_FBC_JS'		=> true,
-				'S_SETTINGS'			=> true,
+				'S_ERROR'							=> $s_errors,
+				'S_INCLUDE_FBC_JS'					=> true,
+				'S_SETTINGS'						=> true,
 
-				'U_ACTION' 		=> $this->u_action,
+				'U_ACTION' 							=> $this->u_action,
 			));
 
 		}
 		else if ($mode == 'stats')
 		{
 
-			if ((bool) $this->config['phpbbservices_filterbycountry_keep_statistics'])
+			// Populate the statistics page fields
+
+			if ((bool) $this->config->offsetGet('phpbbservices_filterbycountry_keep_statistics'))
 			{
 
 				// Get time limit controls
@@ -340,7 +348,7 @@ class acp_controller
 					$rowset = $this->db->sql_fetchrowset($result);
 
 					// Add to $rowset a column representing the textual country name, in the user's language
-					for ($i=0; $i < count($rowset); $i++)
+					for ($i=0; $i<count($rowset); $i++)
 					{
 						$rowset[$i]['country_name'] = $countries[$rowset[$i]['country_code']];
 					}
@@ -404,7 +412,7 @@ class acp_controller
 
 						'CURRENT_RANGE'						=> $text_range,
 
-						'L_ACP_FBC_TITLE_EXPLAIN'			=> $this->language->lang('ACP_FBC_STATS_TITLE_EXPLAIN', date($this->user->data['user_dateformat'], $this->config['phpbbservices_filterbycountry_statistics_start_date'])),
+						'L_ACP_FBC_TITLE_EXPLAIN'			=> $this->language->lang('ACP_FBC_STATS_TITLE_EXPLAIN', date($this->user->data['user_dateformat'], $this->config->offsetGet('phpbbservices_filterbycountry_statistics_start_date'))),
 
 						'S_ACP_FBC_LAST_QUARTER_VALUE'		=> constants::ACP_FBC_LAST_QUARTER_VALUE,
 						'S_ACP_FBC_LAST_MONTH_VALUE'		=> constants::ACP_FBC_LAST_MONTH_VALUE,
@@ -429,6 +437,7 @@ class acp_controller
 						'U_FBC_COUNTRY_RESTRICTED_ASC'		=> append_sid($this->phpbb_root_path . "adm/index.$this->phpEx?i=-phpbbservices-filterbycountry-acp-main_module&amp;mode=stats&amp;sort=ra"),
 						'U_FBC_COUNTRY_RESTRICTED_DESC'		=> append_sid($this->phpbb_root_path . "adm/index.$this->phpEx?i=-phpbbservices-filterbycountry-acp-main_module&amp;mode=stats&amp;sort=rz"),
 						'U_FBC_COUNTRY_Z_A'					=> append_sid($this->phpbb_root_path . "adm/index.$this->phpEx?i=-phpbbservices-filterbycountry-acp-main_module&amp;mode=stats&amp;sort=cz"),
+
 					));
 				}
 				else
