@@ -118,13 +118,13 @@ class main_listener implements EventSubscriberInterface
 		}
 
 		// Get ignore bots setting and determine if it should be applied
-		$ignore_bots = (($this->user->data['user_type'] == USER_IGNORE) && ($this->config->offsetGet('phpbbservices_filterbycountry_ignore_bots') == 1)) ? true : false;
+		$ignore_bots = (($this->user->data['user_type'] == USER_IGNORE) && ($this->config['phpbbservices_filterbycountry_ignore_bots'] == 1)) ? true : false;
 
 		// Get a list of country codes of interest and place in an array for easy processing
 		$country_codes = explode(',', $this->config_text->get('phpbbservices_filterbycountry_country_codes'));
 
 		// Allow (1) or restrict (0) country codes?
-		$allow = (bool) $this->config->offsetGet('phpbbservices_filterbycountry_allow');
+		$allow = (bool) $this->config['phpbbservices_filterbycountry_allow'];
 
 		// Hook in the MaxMind country code database interface.
 		include($this->phpbb_root_path . 'vendor/autoload.php');
@@ -267,7 +267,7 @@ class main_listener implements EventSubscriberInterface
 
 		}
 
-		if (!$allow_request && $this->config->offsetGet('phpbbservices_filterbycountry_allow_out_of_country_logins'))
+		if (!$allow_request && $this->config['phpbbservices_filterbycountry_allow_out_of_country_logins'])
 		{
 			// In this condition, you can access the board if you are an actively registered user and are already
 			// logged in, as evidenced by the user_type, which won't be set for normal users and founders unless
@@ -289,12 +289,12 @@ class main_listener implements EventSubscriberInterface
 		}
 
 		// This triggers the error letting the user know access is denied. They see forum headers and footers, and the error message.
-		// Any links clicked on should simply continue to deny access.
+		// Any links clicked on should simply continue to deny access, with the possible exception of the login link.
 		$this->save_access_wrapper($user_ips, $allow_request, $ignore_bots);
 		if (!$allow_request)
 		{
 			// Not allowed to see board content, so present warning message. Provide a login link if allowed.
-			if ($this->config->offsetGet('phpbbservices_filterbycountry_allow_out_of_country_logins'))
+			if ($this->config['phpbbservices_filterbycountry_allow_out_of_country_logins'])
 			{
 				@trigger_error($this->language->lang('ACP_FBC_DENY_ACCESS_LOGIN', $this->get_disallowed_countries($user_ips), $this->phpbb_root_path . "ucp.$this->phpEx?mode=login"), E_USER_WARNING);
 			}
@@ -332,7 +332,7 @@ class main_listener implements EventSubscriberInterface
 		}
 
 		// Log the access to the phpbb_fbc_stats table, if so configured. We only log access once.
-		if ($this->config->offsetGet('phpbbservices_filterbycountry_keep_statistics'))
+		if ($this->config['phpbbservices_filterbycountry_keep_statistics'])
 		{
 			foreach ($ips_of_interest as $ip_of_interest)
 			{
@@ -443,7 +443,7 @@ class main_listener implements EventSubscriberInterface
 		}
 
 		// Log the request if logging is enabled. Only restricted attempts are logged.
-		if ($this->config->offsetGet('phpbbservices_filterbycountry_log_access_errors') && !$allow_request)
+		if ($this->config['phpbbservices_filterbycountry_log_access_errors'] && !$allow_request)
 		{
 			$this->log->add(LOG_ADMIN, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_BAD_ACCESS', false, array($this->user->data['username'], $this->get_disallowed_ips($user_ips), $this->get_disallowed_countries($user_ips)));
 		}

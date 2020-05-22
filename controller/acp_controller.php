@@ -185,7 +185,7 @@ class acp_controller
 
 			// Populate the settings page fields
 
-			if ($this->config->offsetGet('phpbbservices_filterbycountry_license_key_valid') == 0 || strlen(trim($this->config->offsetGet('phpbbservices_filterbycountry_license_key'))) !== 16)
+			if ($this->config['phpbbservices_filterbycountry_license_key_valid'] == 0 || strlen(trim($this->config['phpbbservices_filterbycountry_license_key'])) !== 16)
 			{
 				$errors[] = $this->language->lang('ACP_FBC_INVALID_LICENSE_KEY');
 				$s_errors = true;
@@ -193,15 +193,14 @@ class acp_controller
 
 			$this->template->assign_vars(array(
 				'COUNTRY_CODES' 					=> $this->config_text->get('phpbbservices_filterbycountry_country_codes'),	// Processed by the Javascript
-				'COUNTRY_CODES' 					=> $this->config_text->get('phpbbservices_filterbycountry_country_codes'),	// Processed by the Javascript
 				'ERROR_MSG'     					=> $s_errors ? implode('<br>', $errors) : '',
-				'FBC_ALLOW_OUT_OF_COUNTRY_LOGINS'	=> (bool) $this->config->offsetGet('phpbbservices_filterbycountry_allow_out_of_country_logins'),
-				'FBC_ALLOW_RESTRICT'				=> (bool) $this->config->offsetGet('phpbbservices_filterbycountry_allow'),
-				'FBC_IGNORE_BOTS'					=> (bool) $this->config->offsetGet('phpbbservices_filterbycountry_ignore_bots'),
-				'FBC_IP_NOT_FOUND_ALLOW_RESTRICT'	=> (bool) $this->config->offsetGet('phpbbservices_filterbycountry_ip_not_found_allow'),
-				'FBC_KEEP_STATISTICS'				=> (bool) $this->config->offsetGet('phpbbservices_filterbycountry_keep_statistics'),
-				'FBC_LICENSE_KEY'					=> $this->config->offsetGet('phpbbservices_filterbycountry_license_key'),
-				'FBC_LOG_ACCESS_ERRORS'				=> (bool) $this->config->offsetGet('phpbbservices_filterbycountry_log_access_errors'),
+				'FBC_ALLOW_OUT_OF_COUNTRY_LOGINS'	=> (bool) $this->config['phpbbservices_filterbycountry_allow_out_of_country_logins'],
+				'FBC_ALLOW_RESTRICT'				=> (bool) $this->config['phpbbservices_filterbycountry_allow'],
+				'FBC_IGNORE_BOTS'					=> (bool) $this->config['phpbbservices_filterbycountry_ignore_bots'],
+				'FBC_IP_NOT_FOUND_ALLOW_RESTRICT'	=> (bool) $this->config['phpbbservices_filterbycountry_ip_not_found_allow'],
+				'FBC_KEEP_STATISTICS'				=> (bool) $this->config['phpbbservices_filterbycountry_keep_statistics'],
+				'FBC_LICENSE_KEY'					=> $this->config['phpbbservices_filterbycountry_license_key'],
+				'FBC_LOG_ACCESS_ERRORS'				=> (bool) $this->config['phpbbservices_filterbycountry_log_access_errors'],
 
 				'S_ERROR'							=> $s_errors,
 				'S_INCLUDE_FBC_JS'					=> true,
@@ -216,7 +215,7 @@ class acp_controller
 
 			// Populate the statistics page fields
 
-			if ((bool) $this->config->offsetGet('phpbbservices_filterbycountry_keep_statistics'))
+			if ((bool) $this->config['phpbbservices_filterbycountry_keep_statistics'])
 			{
 
 				// Get time limit controls
@@ -412,7 +411,7 @@ class acp_controller
 
 						'CURRENT_RANGE'						=> $text_range,
 
-						'L_ACP_FBC_TITLE_EXPLAIN'			=> $this->language->lang('ACP_FBC_STATS_TITLE_EXPLAIN', date($this->user->data['user_dateformat'], $this->config->offsetGet('phpbbservices_filterbycountry_statistics_start_date'))),
+						'L_ACP_FBC_TITLE_EXPLAIN'			=> $this->language->lang('ACP_FBC_STATS_TITLE_EXPLAIN', date($this->user->data['user_dateformat'], $this->config['phpbbservices_filterbycountry_statistics_start_date'])),
 
 						'S_ACP_FBC_LAST_QUARTER_VALUE'		=> constants::ACP_FBC_LAST_QUARTER_VALUE,
 						'S_ACP_FBC_LAST_MONTH_VALUE'		=> constants::ACP_FBC_LAST_MONTH_VALUE,

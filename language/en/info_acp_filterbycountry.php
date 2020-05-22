@@ -44,7 +44,6 @@ $lang = array_merge($lang, array(
 	'ACP_FBC_TITLE_SHORT'		=> 'Settings',
 
 	'LOG_ACP_FBC_BAD_ACCESS'				=> '<strong>Filter by country: %1s was denied board access from IP(s) %2s because access from country/countries “%3s“ is not allowed.',
-	//'LOG_ACP_FBC_BAD_IP'					=> '<strong>Filter by country: An invalid IP of %1s was detected in the HTTP header “%2s“ for username “%3s“.',
 	'LOG_ACP_FBC_CREATE_DIRECTORY_ERROR'	=> '<strong>Unable to create the folder %1$s. This may be due to insufficient permissions. The file permissions on the folder should be set to publicly writeable (777 on Unix-based systems).</strong>',
 	'LOG_ACP_FBC_DEBUG'						=> '<strong>%1s</strong>',
 	'LOG_ACP_FBC_DELETE_ERROR'				=> '<strong>Unable to delete %1$s. This may be due to insufficient permissions. Full public write permissions are needed.</strong>',

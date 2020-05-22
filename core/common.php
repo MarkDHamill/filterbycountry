@@ -64,14 +64,14 @@ class common
 		else
 		{
 			// If the license key is blank or not 16 characters, the database cannot be downloaded, so exit this function.
-			if (strlen(trim($this->config->offsetGet('phpbbservices_filterbycountry_license_key'))) !== 16)
+			if (strlen(trim($this->config['phpbbservices_filterbycountry_license_key'])) !== 16)
 			{
 				return false;
 			}
 		}
 
 		// Some useful paths
-		$maxmind_db_url = 'https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-Country&license_key=' . trim($this->config->offsetGet('phpbbservices_filterbycountry_license_key')) . '&suffix=tar.gz';
+		$maxmind_db_url = 'https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-Country&license_key=' . trim($this->config['phpbbservices_filterbycountry_license_key']) . '&suffix=tar.gz';
 		$extension_store_directory = $this->phpbb_root_path . 'store/phpbbservices/filterbycountry';
 		$database_gz_file_path = $extension_store_directory . '/GeoLite2-Country.gz';
 
@@ -152,7 +152,7 @@ class common
 		if ($status_code == 401)
 		{
 			// The license key is bad. Mark that it is invalid.
-			$this->config->offsetSet('phpbbservices_filterbycountry_license_key_valid', 0);
+			$this->config->set('phpbbservices_filterbycountry_license_key_valid', 0);
 
 			// A file GeoLite2-Country.gz should be in /store/phpbbservices/filterbycountry. But it's bogus because of the 401 error and is only 20 bytes or so.
 			// To keep things kosher, it should be deleted.
@@ -174,7 +174,7 @@ class common
 		fclose($fp);
 
 		// The database should have been retrieved successfully at this point, so we can assume the license key is valid.
-		$this->config->offsetSet('phpbbservices_filterbycountry_license_key_valid', 1);
+		$this->config->set('phpbbservices_filterbycountry_license_key_valid', 1);
 
 		// Now, extract the database. Note that the .tar file inside the .gz file does not need to be extracted first. PharData::extractTo()
 		// does both steps, but does create a subdirectory inside /store/phpbbservices/filterbycountry we don't want.
