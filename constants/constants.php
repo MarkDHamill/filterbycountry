@@ -25,6 +25,4 @@ class constants {
 	const ACP_FBC_LAST_1_HOURS_VALUE = 10;
 	const ACP_FBC_LAST_30_MINUTES_VALUE = 11;
 	const ACP_FBC_LAST_15_MINUTES_VALUE = 12;
-	const ACP_FBC_STATS_TABLE = 'fbc_stats';
-
 }

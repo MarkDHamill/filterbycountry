@@ -3,36 +3,26 @@
 {% DEFINE INCLUDED_JQUERYUI1121JS = true %}
 {% INCLUDEJS '@phpbbservices_filterbycountry/jquery-ui-1.12.1.min.js' %}
 <script>
-	var countryCodes = "{{ COUNTRY_CODES }}";
-	var countryCodesArray = countryCodes.split(',');
 	$( document ).ready(function() {
+		var countryCodes = "{{ COUNTRY_CODES }}";
+		var countryCodesArray = encodeURIComponent(countryCodes.split(','));
 		$("#phpbbservices_filterbycountry_country_codes option").each(function() {
 			// Mark options in the country code options selected if they were set previously
 			if (countryCodesArray.indexOf($(this).val()) != -1) {
 				$(this).prop('selected', true);
-			};
+			}
 		});
 		// When unselect all countries button is pressed, this logic is executed
-		$("#unselect_options").click(function() {
+		$("#unselect_options").on('click',(function() {
 			$("#phpbbservices_filterbycountry_country_codes option").each(function() {
 				$(this).prop('selected', false);
 			});
-		});
-	});
-	$( function() {
+		}));
 		$("#date_start, #date_end").datepicker(
-		{
-			dateFormat: 'yy-mm-dd',
-			changeYear: true
-		});
-	} );
-	// Disable the country code options selected when the ignore setting is enabled
-	$('#phpbbservices_filterbycountry_acp input').on('change', function() {
-		if ($('input[name=phpbbservices_filterbycountry_allow]:checked', '#phpbbservices_filterbycountry_acp').val() == 2) {
-			$('#phpbbservices_filterbycountry_country_codes').prop('disabled', 'disabled');
-		} else {
-			$('#phpbbservices_filterbycountry_country_codes').prop('disabled', false);
-		}
+			{
+				dateFormat: 'yy-mm-dd',
+				changeYear: true
+			});
 	});
 </script>
 {% endif %}

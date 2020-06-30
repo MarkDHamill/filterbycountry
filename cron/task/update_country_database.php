@@ -14,22 +14,19 @@ class update_country_database extends \phpbb\cron\task\base
 
 	protected $config;
 	protected $helper;
-	protected $phpbb_log;
 
 	/**
 	 * Constructor.
 	 *
 	 * @param \phpbb\config\config 							$config		The config
 	 * @param \phpbbservices\filterbycountry\core\common 	$helper		Extension's helper object
-	 * @param \phpbb\log\log 								$phpbb_log	phpBB log object
 	 */
 
-	public function __construct(\phpbb\config\config $config, \phpbbservices\filterbycountry\core\common $helper, \phpbb\log\log $phpbb_log)
+	public function __construct(\phpbb\config\config $config, \phpbbservices\filterbycountry\core\common $helper)
 	{
 
 		$this->config = $config;
 		$this->helper = $helper;
-		$this->phpbb_log = $phpbb_log;
 
 	}
 

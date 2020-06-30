@@ -17,16 +17,18 @@ class ext extends \phpbb\extension\base
 	public function is_enableable()
 	{
 
+		global $phpbb_root_path;
+
 		$config = $this->container->get('config');
 
 		if (
-			phpbb_version_compare($config['version'], '3.2.0', '>=') &&
+			phpbb_version_compare($config['version'], '3.3.0', '>=') &&
 			phpbb_version_compare($config['version'], '4.0', '<') &&
 			ini_get('allow_url_fopen') &&
 			extension_loaded('curl') &&
 			extension_loaded('dom') &&
 			extension_loaded('Phar') &&
-			is_writable ( './../store/' )
+			is_writable ( $phpbb_root_path . '/store/' )
 		)
 		{
 			// Conditions met to install extension

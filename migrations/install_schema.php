@@ -18,7 +18,7 @@ class install_schema extends \phpbb\db\migration\migration
 	static public function depends_on()
 	{
 		return array(
-			'\phpbb\db\migration\data\v320\v320',
+			'\phpbb\db\migration\data\v330\v330',
 			'\phpbbservices\filterbycountry\migrations\install_acp_module',
 		);
 	}
@@ -29,7 +29,7 @@ class install_schema extends \phpbb\db\migration\migration
 		return array(
 
 			'add_tables'    => array(
-				$this->table_prefix . constants::ACP_FBC_STATS_TABLE        => array(
+				$this->table_prefix . 'fbc_stats'        => array(
 					'COLUMNS'       	=> array(
 						'country_code' 	=> array('VCHAR:2', ''),
 						'timestamp' 	=> array('TIMESTAMP', 0),
@@ -51,52 +51,9 @@ class install_schema extends \phpbb\db\migration\migration
 	{
 		return array(
 
-			'drop_tables'    => array(
-				$this->table_prefix . 'fbc_stats',
-			)
-
-		);
-
-	}
-
-	public function revert_data()
-	{
-		// Clean up. Remove the extension's filterbycountry directory and the Maxmind database inside it, which likely exist.
-		$this->rrmdir('./../store/phpbbservices/filterbycountry');
-		return array();
-	}
-
-	private function rrmdir($dir)
-	{
-
-		// Recursively removes files in a directory
-		if (is_dir($dir))
-		{
-			$inodes = scandir($dir);
-			if (is_array($inodes))
-			{
-				foreach ($inodes as $inode)
-				{
-					if ($inode != "." && $inode != "..")
-					{
-						if (is_dir($dir . "/" . $inode))
-						{
-							$success = rrmdir($dir . "/" . $inode);
-						}
-						else
-						{
-							$success = unlink($dir . "/" . $inode);
-						}
-						if (!$success)
-						{
-							return false;
-						}
-					}
-				}
-				rmdir($dir);
-			}
-		}
-
+			'drop_tables'    =>
+				array($this->table_prefix . 'fbc_stats'),
+			);
 	}
 
 }

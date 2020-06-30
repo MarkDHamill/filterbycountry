@@ -1,5 +1,5 @@
 imports:
-    - { resource: parameters.yml }
+    - { resource: tables.yml }
 services:
     phpbbservices.filterbycountry.listener:
         class: phpbbservices\filterbycountry\event\main_listener
@@ -14,8 +14,8 @@ services:
             - '@config_text'
             - '@phpbbservices.filterbycountry.common'
             - '@dbal.conn'
-            - '%core.table_prefix%'
             - '@filesystem'
+            - '%core.table_prefix%fbc_stats'
         tags:
             - { name: event.listener }
     phpbbservices.filterbycountry.common:
@@ -27,6 +27,7 @@ services:
             - '@log'
             - '@user'
             - '@filesystem'
+            - '@request'
     phpbbservices.filterbycountry.controller.acp:
         class: phpbbservices\filterbycountry\controller\acp_controller
         arguments:
@@ -39,21 +40,15 @@ services:
             - '@config_text'
             - '@phpbbservices.filterbycountry.common'
             - '@dbal.conn'
-            - '%core.table_prefix%'
             - '%core.root_path%'
             - '%core.php_ext%'
             - '@filesystem'
-    phpbbservices.filterbycountry.service:
-        class: phpbbservices\filterbycountry\service
-        arguments:
-            - '@user'
-            - '%phpbbservices.filterbycountry.tables.filterbycountry_table%'
+            - '%core.table_prefix%fbc_stats'
     phpbbservices.filterbycountry.cron.task.cron_task:
         class: phpbbservices\filterbycountry\cron\task\update_country_database
         arguments:
             - '@config'
             - '@phpbbservices.filterbycountry.common'
-            - '@log'
         calls:
             - [set_name, [cron.task.update_country_database]]
         tags:

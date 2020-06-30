@@ -27,7 +27,7 @@ class install_acp_module extends \phpbb\db\migration\migration
 
 	public static function depends_on()
 	{
-		return array('\phpbb\db\migration\data\v320\v320',);
+		return array('\phpbb\db\migration\data\v330\v330');
 	}
 
 	public function update_data()
@@ -40,6 +40,7 @@ class install_acp_module extends \phpbb\db\migration\migration
 			array('config.add', array('phpbbservices_filterbycountry_keep_statistics', 0)),
 			array('config.add', array('phpbbservices_filterbycountry_statistics_start_date', 0)),
 			array('config.add', array('phpbbservices_filterbycountry_log_access_errors', 0)),
+			array('config.add', array('phpbbservices_filterbycountry_test_ip', '')),
 			array('config_text.add', array('phpbbservices_filterbycountry_country_codes', '')),
 
 			array('module.add', array(
@@ -65,4 +66,29 @@ class install_acp_module extends \phpbb\db\migration\migration
 			)),
 		);
 	}
+
+	public function revert_data()
+	{
+		return array(array('custom', array(array($this, 'remove_files'))));
+	}
+
+	public function remove_files()
+	{
+
+		// Clean up. Remove the extension's filterbycountry directory and the Maxmind database inside it, which likely exists.
+
+		global $phpbb_container;
+		global $phpbb_root_path;
+
+		$filesystem = $phpbb_container->get('filesystem');
+
+		$path = $phpbb_root_path . 'store/phpbbservices/filterbycountry';
+
+		if ($filesystem->exists($path))
+		{
+			$filesystem->remove($path);
+		}
+
+	}
+
 }

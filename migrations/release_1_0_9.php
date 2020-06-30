@@ -17,7 +17,7 @@ class release_1_0_9 extends \phpbb\db\migration\migration
 	{
 		return array(
 			'\phpbbservices\filterbycountry\migrations\release_1_0_7',
-			'\phpbb\db\migration\data\v320\v320',
+			'\phpbb\db\migration\data\v330\v330',
 		);
 	}
 

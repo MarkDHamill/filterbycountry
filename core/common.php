@@ -22,6 +22,7 @@ class common
 	protected $language;
 	protected $phpbb_log;
 	protected $phpbb_root_path;
+	protected $request;
 	protected $user;
 
 	/**
@@ -33,16 +34,18 @@ class common
 	 * @param \phpbb\log\log 			$phpbb_log 			phpBB log object
 	 * @param \phpbb\user				$user				User object
 	 * @param \phpbb\filesystem 		$filesystem			The filesystem object
+	 * @param \phpbb\request\request	$request			Request object
 	 *
 	 */
 
-	public function __construct(\phpbb\language\language $language, $phpbb_root_path, \phpbb\config\config $config, \phpbb\log\log $phpbb_log, \phpbb\user $user, \phpbb\filesystem\filesystem $filesystem)
+	public function __construct(\phpbb\language\language $language, $phpbb_root_path, \phpbb\config\config $config, \phpbb\log\log $phpbb_log, \phpbb\user $user, \phpbb\filesystem\filesystem $filesystem, \phpbb\request\request $request)
 	{
 		$this->config = $config;
 		$this->filesystem = $filesystem;
 		$this->language = $language;
 		$this->phpbb_log = $phpbb_log;
 		$this->phpbb_root_path = $phpbb_root_path;
+		$this->request	= $request;
 		$this->user	= $user;
 	}
 
@@ -55,19 +58,18 @@ class common
 		// Parameters:
 		//   $update_database - if true, database is destroyed and recreated, done if called by a cron
 
-		// If on the settings page, we return true, otherwise, the screen can't come up to enter a new or corrected license key.
+		// If on the ACP settings page, we return true, otherwise, the screen can't come up to enter a new or corrected license key.
 		// This page does not need to use the database.
-		if (stripos($this->user->page['query_string'], 'mode=settings'))
+		$mode = $this->request->variable('mode', 'settings');
+		if (defined('ADMIN_START') && $mode == 'settings')
 		{
 			return true;
 		}
-		else
+
+		// If the license key is blank or not 16 characters, the database should not be downloaded, so exit this function.
+		if (strlen(trim($this->config['phpbbservices_filterbycountry_license_key'])) !== 16)
 		{
-			// If the license key is blank or not 16 characters, the database cannot be downloaded, so exit this function.
-			if (strlen(trim($this->config['phpbbservices_filterbycountry_license_key'])) !== 16)
-			{
-				return false;
-			}
+			return false;
 		}
 
 		// Some useful paths
@@ -159,7 +161,7 @@ class common
 			$this->filesystem->remove($database_gz_file_path);
 
 			// In this case we'll return true, but only when in the ACP settings interface. Otherwise, the screen can't come up to enter a corrected license key.
-			return stripos($this->user->page['query_string'], 'mode=settings') ? true : false;
+			return ($mode == 'settings') ? true : false;
 		}
 
 		// If the database was fetched successfully or hasn't changed -- that's good. Otherwise, it's bad so we need to capture this and do more error handling.
@@ -194,6 +196,8 @@ class common
 		// store/phpbbservices/filterbycountry. The directory name is based on the date the database was refreshed, like
 		// GeoLite2-Country_20200107. The database is inside it.
 		$found_directory = false;
+		$tarball_dir = '';
+
 		if ($dh = opendir($extension_store_directory))
 		{
 			while (($file = readdir($dh)) !== false)
@@ -250,21 +254,11 @@ class common
 	{
 
 		// Gets the name of the country in the user's language. What's returned by MaxMind is the country's name in English.
+		$this->language->add_lang('common', 'phpbbservices/filterbycountry');
 
-		$dom = new \DOMDocument();
-		$dom->loadHTML('<?xml encoding="utf-8" ?>' . $this->language->lang('ACP_FBC_OPTIONS')); // Encoding fix by EA117
-		$xml_countries = $dom->getElementsByTagName('option');
+		$country_name = (array_key_exists($country_code, $this->user->lang['ACP_FBC_COUNTRIES_LIST'])) ? $this->user->lang['ACP_FBC_COUNTRIES_LIST'][$country_code] : $this->language->lang('ACP_FBC_UNKNOWN');
 
-		// Find the country by parsing the language variable that contains the HTML option tags.
-		foreach ($xml_countries as $xml_country)
-		{
-			if ($xml_country->getAttribute('value') == $country_code)
-			{
-				return $xml_country->nodeValue;	// Returns the country's name in the user's language
-			}
-			next($xml_countries);
-		}
-		return $this->language->lang('ACP_FBC_UNKNOWN');
+		return $country_name;
 
 	}
 

@@ -21,6 +21,7 @@ class acp_controller
 	protected $config;
 	protected $config_text;
 	protected $db;
+	protected $fbc_stats_table;
 	protected $filesystem;
 	protected $helper;
 	protected $language;
@@ -28,7 +29,6 @@ class acp_controller
 	protected $phpbb_root_path;
 	protected $phpEx;
 	protected $request;
-	protected $table_prefix;
 	protected $template;
 	protected $user;
 	protected $u_action;
@@ -42,28 +42,28 @@ class acp_controller
 	 * @param \phpbb\request\request						$request			Request object
 	 * @param \phpbb\template\template						$template			Template object
 	 * @param \phpbb\user									$user				User object
-	 * @param \phpbb\config\db_text							$config_text		The config text
+	 * @param \phpbb\config\db_text							$config_text		The config text object
 	 * @param \phpbbservices\filterbycountry\core\common 	$helper				Extension's helper object
 	 * @param \phpbb\db\driver\factory 						$db 				The database factory object
-	 * @param string										$table_prefix 		Prefix for phpbb's database tables
 	 * @param string										$phpbb_root_path	Relative path to phpBB root
 	 * @param string                   						$php_ext         	PHP file suffix
 	 * @param \phpbb\filesystem 							$filesystem			The filesystem object
+	 * @param \phpbbservices\filterbycountry\				$fbc_stats_table	Extension's statistics table
 	 */
-	public function __construct(\phpbb\config\config $config, \phpbb\language\language $language, \phpbb\log\log $log, \phpbb\request\request $request, \phpbb\template\template $template, \phpbb\user $user, \phpbb\config\db_text $config_text, \phpbbservices\filterbycountry\core\common $helper, \phpbb\db\driver\factory $db, $table_prefix, $phpbb_root_path, $php_ext, \phpbb\filesystem\filesystem $filesystem)
+	public function __construct(\phpbb\config\config $config, \phpbb\language\language $language, \phpbb\log\log $log, \phpbb\request\request $request, \phpbb\template\template $template, \phpbb\user $user, \phpbb\config\db_text $config_text, \phpbbservices\filterbycountry\core\common $helper, \phpbb\db\driver\factory $db, $phpbb_root_path, $php_ext, \phpbb\filesystem\filesystem $filesystem, $fbc_stats_table)
 	{
 
 		$this->config	= $config;
 		$this->config_text = $config_text;
 		$this->db 		= $db;
+		$this->fbc_stats_table	= $fbc_stats_table;
 		$this->filesystem = $filesystem;
 		$this->helper 	= $helper;
 		$this->language	= $language;
 		$this->log		= $log;
-		$this->request	= $request;
 		$this->phpbb_root_path = $phpbb_root_path;
 		$this->phpEx 	= $php_ext;
-		$this->table_prefix = $table_prefix;
+		$this->request	= $request;
 		$this->template	= $template;
 		$this->user		= $user;
 
@@ -74,7 +74,7 @@ class acp_controller
 	 *
 	 * @return void
 	 */
-	public function display_options()
+	public function display_options($mode)
 	{
 
 		$this->language->add_lang('common', 'phpbbservices/filterbycountry');
@@ -85,18 +85,6 @@ class acp_controller
 		// Create an array to collect errors that will be output to the user
 		$errors = array();
 
-		// Get the mode, indirectly from the URL
-		$mode = '';
-		$url = $this->request->server('REQUEST_URI');
-		if (stristr($url, "mode=settings"))
-		{
-			$mode = 'settings';
-		}
-		else if (stristr($url, "mode=stats"))
-		{
-			$mode = 'stats';
-		}
-
 		// Is the form being submitted to us?
 		if ($this->request->is_set_post('submit'))
 		{
@@ -104,6 +92,13 @@ class acp_controller
 			if (!check_form_key('phpbbservices_filterbycountry_acp'))
 			{
 				$errors[] = $this->language->lang('FORM_INVALID');
+			}
+
+			// Show error if test IP is not valid IPV4 or IPV6
+			$test_ip = $this->request->variable('phpbbservices_filterbycountry_test_ip','');
+			if (trim($test_ip) !== '' && !filter_var($test_ip, FILTER_VALIDATE_IP))
+			{
+				$errors[] = $this->language->lang('ACP_FBC_TEST_IP_BAD');
 			}
 
 			// If no errors, process the form data
@@ -134,6 +129,10 @@ class acp_controller
 					$ignore_bots = $this->request->variable('phpbbservices_filterbycountry_ignore_bots', 0);
 					$this->config->set('phpbbservices_filterbycountry_ignore_bots', $ignore_bots);
 
+					// Save the test IP setting
+					$test_ip = $this->request->variable('phpbbservices_filterbycountry_test_ip', '');
+					$this->config->set('phpbbservices_filterbycountry_test_ip', $test_ip);
+
 					if ($save_statistics)
 					{
 						// Set the statistics start date to the current time
@@ -142,7 +141,7 @@ class acp_controller
 					else
 					{
 						// Remove all statistics if $save_statistics is false
-						$sql = 'DELETE FROM ' . $this->table_prefix . constants::ACP_FBC_STATS_TABLE;
+						$sql = 'DELETE FROM ' . $this->fbc_stats_table;
 						$this->db->sql_query($sql);
 
 						// Also, reset the statistics start date
@@ -166,16 +165,20 @@ class acp_controller
 		$s_errors = !empty($errors);
 
 		// First, test if the GeoLite2-Country-Country.mmdb database exists in /store/phpbbservices/filterbycountry directory.
-		// If it doesn't, the function will create the directory and populate it, if it can.
+		// If it doesn't, the function will create the directory and populate it, if it can. But make sure the license key is valid
+		// before doing this, otherwise an error will occur.
 
-		$database_mmdb_file_path = $this->phpbb_root_path . 'store/phpbbservices/filterbycountry/GeoLite2-Country.mmdb';
-		if (!$this->filesystem->exists($database_mmdb_file_path))
+		if ($this->config['phpbbservices_filterbycountry_license_key_valid'] == 1 && strlen(trim($this->config['phpbbservices_filterbycountry_license_key'])) == 16)
 		{
-			// If the database doesn't exist (first time), create it. Note: if the database cannot be created, the
-			// function returns false. In this case, we draw attention to the issue so the underlying problem can be fixed.
-			if (!$this->helper->download_maxmind())
+			$database_mmdb_file_path = $this->phpbb_root_path . 'store/phpbbservices/filterbycountry/GeoLite2-Country.mmdb';
+			if (!$this->filesystem->exists($database_mmdb_file_path))
 			{
-				@trigger_error($this->language->lang('ACP_FBC_CREATE_DATABASE_ERROR'), E_USER_WARNING);
+				// If the database doesn't exist (first time), create it. Note: if the database cannot be created, the
+				// function returns false. In this case, we draw attention to the issue so the underlying problem can be fixed.
+				if (!$this->helper->download_maxmind())
+				{
+					@trigger_error($this->language->lang('ACP_FBC_CREATE_DATABASE_ERROR'), E_USER_WARNING);
+				}
 			}
 		}
 
@@ -201,6 +204,7 @@ class acp_controller
 				'FBC_KEEP_STATISTICS'				=> (bool) $this->config['phpbbservices_filterbycountry_keep_statistics'],
 				'FBC_LICENSE_KEY'					=> $this->config['phpbbservices_filterbycountry_license_key'],
 				'FBC_LOG_ACCESS_ERRORS'				=> (bool) $this->config['phpbbservices_filterbycountry_log_access_errors'],
+				'FBC_TEST_IP'						=> $this->config['phpbbservices_filterbycountry_test_ip'],
 
 				'S_ERROR'							=> $s_errors,
 				'S_INCLUDE_FBC_JS'					=> true,
@@ -208,6 +212,17 @@ class acp_controller
 
 				'U_ACTION' 							=> $this->u_action,
 			));
+
+			// Populate the options list with a list of countries, in the user's language. Using $this->language->lang
+			// doesn't work with arrays and will return only the last element of the array, so we need to use an
+			// alternative method to get this language variable as an array instead.
+			foreach ($this->user->lang['ACP_FBC_COUNTRIES_LIST'] as $key => $value)
+			{
+				$this->template->assign_block_vars('country', array(
+					'CODE'	=> $key,
+					'NAME'	=> $value
+				));
+			}
 
 		}
 		else if ($mode == 'stats')
@@ -218,11 +233,12 @@ class acp_controller
 			if ((bool) $this->config['phpbbservices_filterbycountry_keep_statistics'])
 			{
 
-				// Get time limit controls
+				// Get time limit control values for the page
 				$range = $this->request->variable('range', constants::ACP_FBC_NO_LIMIT_VALUE);
-				$date_start = $this->request->variable('date_start', ''); // Format: yyyy-mm-dd
-				$date_end = $this->request->variable('date_end', ''); // Format: yyyy-mm-dd
+				$date_start = trim($this->request->variable('date_start', '')); // Format: yyyy-mm-dd
+				$date_end = trim($this->request->variable('date_end', '')); // Format: yyyy-mm-dd
 
+				// Start absolute date range logic
 				if ($date_start !== '' && $date_end !== '')
 				{
 					// Since $date_end will render a timestamp for midnight (00:00:00) let's take it to the end of the day (23:59:59)
@@ -230,6 +246,19 @@ class acp_controller
 					$sql_where = ' WHERE timestamp >= ' . (int) strtotime($date_start) . ' AND timestamp <= ' . (int) $date_end_ts;
 					$text_range = $this->language->lang('ACP_FBC_FROM') . $date_start . $this->language->lang('ACP_FBC_TO') . $date_end;
 				}
+				else if ($date_start !== '' && $date_end === '')
+				{
+					$sql_where = ' WHERE timestamp >= ' . (int) strtotime($date_start);
+					$text_range = $this->language->lang('ACP_FBC_FROM') . $date_start;
+				}
+				else if ($date_start === '' && $date_end !== '')
+				{
+					$date_end_ts = (int) (strtotime($date_end) + (24 * 60 * 60) - 1);
+					$sql_where = ' WHERE timestamp <= ' . (int) $date_end_ts;
+					$text_range = $this->language->lang('ACP_FBC_TO') . $date_end;
+				}
+				// End absolute date range logic
+				// Begin relative date range logic
 				else
 				{
 					$now = time();
@@ -299,12 +328,13 @@ class acp_controller
 
 					}
 				}
+				// End relative date range logic
 
 				// Get distinct country codes in the table for the time period wanted. We only want to fetch statistics for
 				// countries that have actually garnered hits.
 				$distinct_countries = array();
 				$sql = 'SELECT DISTINCT country_code 
-					FROM ' . $this->table_prefix . constants::ACP_FBC_STATS_TABLE .
+					FROM ' . $this->fbc_stats_table .
 					$sql_where . '
 					ORDER BY country_code';
 				$result = $this->db->sql_query($sql);
@@ -319,40 +349,30 @@ class acp_controller
 				if (count($distinct_countries) > 0)
 				{
 
-					// To present a report by country, we need to put the information in tabular form. Since country names
-					// could vary based on language, it's not viable to put them in a database (otherwise we'd have a ready
-					// option available for sorting). So we'll parse the language string ACP_FBC_OPTIONS for country codes and
-					// country names, which will be in the user's language.
-
-					$dom = new \DOMDocument();
-					$dom->loadHTML('<?xml encoding="utf-8" ?>' . $this->language->lang('ACP_FBC_OPTIONS')); // Encoding fix by EA117
-					$xml_countries = $dom->getElementsByTagName('option');
-
-					// Add unknown at the top of the countries array
-					$countries[constants::ACP_FBC_COUNTRY_NOT_FOUND] = $this->language->lang('ACP_FBC_UNKNOWN');
-
-					foreach ($xml_countries as $xml_country)
-					{
-						// Place into an array, with the value of the option the array element key
-						$countries[$xml_country->getAttribute('value')] = $xml_country->nodeValue;
-						next($countries);
-					}
-
 					// Get allowed and not allowed page requests for each country in the phpbb_fbc_stats table
 					$sql = 'SELECT country_code, sum(allowed) AS allowed_count, sum(not_allowed) AS not_allowed_count
-						FROM ' . $this->table_prefix . constants::ACP_FBC_STATS_TABLE .
+						FROM ' . $this->fbc_stats_table .
 						$sql_where . '
-						GROUP BY country_code';
+						GROUP BY country_code
+						HAVING ' . $this->db->sql_in_set('country_code', $distinct_countries);
 					$result = $this->db->sql_query($sql);
 					$rowset = $this->db->sql_fetchrowset($result);
 
 					// Add to $rowset a column representing the textual country name, in the user's language
+					$countries = $this->user->lang['ACP_FBC_COUNTRIES_LIST'];
 					for ($i=0; $i<count($rowset); $i++)
 					{
-						$rowset[$i]['country_name'] = $countries[$rowset[$i]['country_code']];
+						if ($rowset[$i]['country_code'] == constants::ACP_FBC_COUNTRY_NOT_FOUND)
+						{
+							$rowset[$i]['country_name'] = $this->language->lang('ACP_FBC_UNKNOWN');
+						}
+						else
+						{
+							$rowset[$i]['country_name'] = $countries[$rowset[$i]['country_code']];
+						}
 					}
 
-					// The $rowset array must be ordered outside of SQL because the country name is localized and is not stored in the database
+					// The $rowset array must be ordered outside of SQL because the country name is localized and is not stored in the database.
 					$sort_by = substr($this->request->variable('sort', 'ca'),0,1);	// c = country name, a = allowed, r = restricted
 					$sort_direction = substr($this->request->variable('sort', 'ca'),1,1); // a = ascending, d = descending
 					$sort_direction = ($sort_direction == 'a') ? SORT_ASC : SORT_DESC;
@@ -395,12 +415,13 @@ class acp_controller
 						$not_allowed_count = (int) $row['not_allowed_count'];
 
 						// Create a row in the report table
-						$flag_path = './../ext/phpbbservices/filterbycountry/flags/' . strtolower($row['country_code']) . '.png';
-						$this->template->assign_block_vars('countries', array(
+						$flag_path = $this->phpbb_root_path . 'ext/phpbbservices/filterbycountry/flags/' . strtolower($row['country_code']) . '.png';
+						$this->template->assign_block_vars('country', array(
 							'ALLOWED'		=> $allowed_count,
-							'FLAG'			=> '<img src="' . $flag_path. '" alt="' . $countries[$row['country_code']]. '" title="' . $countries[$row['country_code']]. '">',
+							'FLAG_PATH'		=> $flag_path,
+							'NOT_ALLOWED'	=> $not_allowed_count,
 							'RESTRICTED'	=> $not_allowed_count,
-							'TEXT'        	=> $countries[$row['country_code']],
+							'TEXT'        	=> $row['country_name'],
 						));
 
 					}
@@ -430,12 +451,12 @@ class acp_controller
 						'S_SETTINGS'						=> false,
 
 						'U_ACTION' 							=> $this->u_action,
-						'U_FBC_COUNTRY_A_Z'					=> append_sid($this->phpbb_root_path . "adm/index.$this->phpEx?i=-phpbbservices-filterbycountry-acp-main_module&amp;mode=stats&amp;sort=ca"),
-						'U_FBC_COUNTRY_ALLOWED_ASC'			=> append_sid($this->phpbb_root_path . "adm/index.$this->phpEx?i=-phpbbservices-filterbycountry-acp-main_module&amp;mode=stats&amp;sort=aa"),
-						'U_FBC_COUNTRY_ALLOWED_DESC'		=> append_sid($this->phpbb_root_path . "adm/index.$this->phpEx?i=-phpbbservices-filterbycountry-acp-main_module&amp;mode=stats&amp;sort=az"),
-						'U_FBC_COUNTRY_RESTRICTED_ASC'		=> append_sid($this->phpbb_root_path . "adm/index.$this->phpEx?i=-phpbbservices-filterbycountry-acp-main_module&amp;mode=stats&amp;sort=ra"),
-						'U_FBC_COUNTRY_RESTRICTED_DESC'		=> append_sid($this->phpbb_root_path . "adm/index.$this->phpEx?i=-phpbbservices-filterbycountry-acp-main_module&amp;mode=stats&amp;sort=rz"),
-						'U_FBC_COUNTRY_Z_A'					=> append_sid($this->phpbb_root_path . "adm/index.$this->phpEx?i=-phpbbservices-filterbycountry-acp-main_module&amp;mode=stats&amp;sort=cz"),
+						'U_FBC_COUNTRY_A_Z'					=> $this->u_action . '&amp;sort=ca',
+						'U_FBC_COUNTRY_ALLOWED_ASC'			=> $this->u_action . '&amp;sort=aa',
+						'U_FBC_COUNTRY_ALLOWED_DESC'		=> $this->u_action . '&amp;sort=az',
+						'U_FBC_COUNTRY_RESTRICTED_ASC'		=> $this->u_action . '&amp;sort=ra',
+						'U_FBC_COUNTRY_RESTRICTED_DESC'		=> $this->u_action . '&amp;sort=rz',
+						'U_FBC_COUNTRY_Z_A'					=> $this->u_action . '&amp;sort=cz',
 
 					));
 				}

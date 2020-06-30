@@ -1,0 +1,2 @@
+parameters:
+    phpbbservices.filterbycountry.tables.filterbycountry_table: '%core.table_prefix%fbc_stats'

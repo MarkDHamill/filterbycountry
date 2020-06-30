@@ -36,6 +36,9 @@ class main_module
 		/** @var \phpbb\language\language $language */
 		$language = $phpbb_container->get('language');
 
+		/** @param \phpbb\request\request	$request	Request object */
+		$request = $phpbb_container->get('request');
+
 		// Load a template from adm/style for our ACP page
 		$this->tpl_name = 'acp_filterbycountry_body';
 
@@ -45,7 +48,10 @@ class main_module
 		// Make the $u_action url available in our ACP controller
 		$acp_controller->set_page_url($this->u_action);
 
+		// Get the mode
+		$mode = $request->variable('mode', 'settings');
+
 		// Load the display options handle in our ACP controller
-		$acp_controller->display_options();
+		$acp_controller->display_options($mode);
 	}
 }

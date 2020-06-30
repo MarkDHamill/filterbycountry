@@ -26,7 +26,9 @@
 			<dt><label for="phpbbservices_filterbycountry_country_codes">{{ lang('ACP_FBC_COUNTRIES') ~ lang('COLON') }}</label><br>{{ lang('ACP_FBC_COUNTRIES_EXPLAIN') }}</dt>
 			<dd>
 				<select id="phpbbservices_filterbycountry_country_codes" name="phpbbservices_filterbycountry_country_codes[]" size="10" multiple>
-					{{ lang('ACP_FBC_OPTIONS') }}
+					{% for country in loops.country %}
+					<option value="{{ country.CODE }}">{{ country.NAME }}</option>
+					{% endfor %}
 				</select>
 				<br><br><button type="button" id="unselect_options" name="unselect_options">{{ lang('ACP_FBC_UNSELECT_ALL') }}</button>
 			</dd>
@@ -49,7 +51,11 @@
 		<dl>
 			<dt><label>{{ lang('ACP_FBC_KEEP_STATISTICS') ~ lang('COLON') }}</label><br>{{ lang('ACP_FBC_KEEP_STATISTICS_EXPLAIN') }}</dt>
 			<dd><label><input type="radio" class="radio" name="phpbbservices_filterbycountry_keep_statistics" value="1"{% if FBC_KEEP_STATISTICS %} checked="checked"{% endif %} /> {{ lang('YES') }}</label>
-				<label><input type="radio" class="radio" name="phpbbservices_filterbycountry_keep_statistics" value="0"{% if not FBC_KEEP_STATISTICS %} checked="checked"{% endif %} /> {{ lang('NO') }}</label></dd>
+				<label><input type="radio" class="radio" name="phpbbservices_filterbycountry_keep_statistics" value="0"{% if not FBC_KEEP_STATISTICS %} checked="checked"{% endif %} /> {{ lang('NO') }}</label>
+		</dl>
+		<dl>
+			<dt><label for="phpbbservices_filterbycountry_test_ip">{{ lang('ACP_FBC_TEST_IP') ~ lang('COLON') }}</label><br>{{ lang('ACP_FBC_TEST_IP_EXPLAIN') }}</dt>
+			<dd><input type="text" id="phpbbservices_filterbycountry_test_ip" name="phpbbservices_filterbycountry_test_ip" value="{{ FBC_TEST_IP }}" maxlength="39" size="20"/></dd>
 		</dl>
 {% else %}
 		<h2>{{ lang('ACP_FBC_CURRENT_RANGE') ~ lang('COLON') }} {{ CURRENT_RANGE }}</h2>
@@ -70,7 +76,7 @@
 		<option value="{{ S_ACP_FBC_LAST_15_MINUTES_VALUE }}">{{ lang('ACP_FBC_LAST_15_MINUTES') }}</option>
 	</select>
 	<p>{{ lang('ACP_FBC_RANGE_EXPLAIN') }}</p>
-	<label for="date_start">{{ lang('ACP_FBC_DATES_BEGINNING') ~ lang('COLON') }}</label> <input id="date_start" name="date_start" type="text" placeholder="YYYY-MM-DD" size="10" maxlength="10" readonly> <label for="date_end">{{ lang('ACP_FBC_DATES_ENDING') ~ lang('COLON') }}</label> <input id="date_end" name="date_end" type="text" placeholder="YYYY-MM-DD" size="10" maxlength="10" readonly><br>
+	<label for="date_start">{{ lang('ACP_FBC_DATES_BEGINNING') ~ lang('COLON') }}</label> <input id="date_start" name="date_start" type="text" placeholder="{{ lang('ACP_FBC_PLACEHOLDER') }}" size="10" maxlength="10" readonly> <label for="date_end">{{ lang('ACP_FBC_DATES_ENDING') ~ lang('COLON') }}</label> <input id="date_end" name="date_end" type="text" placeholder="{{ lang('ACP_FBC_PLACEHOLDER') }}" size="10" maxlength="10" readonly><br>
 	<p>{{ lang('ACP_FBC_OVERRIDE') }}</p>
 	<hr>
 
@@ -83,10 +89,12 @@
 			</tr>
 		</thead>
 		<tbody>
-		{% for country in countries %}
-			<tr>
-				<td headers="country">{{ country.FLAG }} <span>{{ country.TEXT }}</span></td><td headers="allowed" class="center">{{ country.ALLOWED }}</td><td headers="restricted" class="center">{{ country.RESTRICTED }}</td>
-			</tr>
+		{% for country in loops.country %}
+		<tr>
+			<td headers="country">
+				{{ country.FLAG }}
+				<span><img src="{{ country.FLAG_PATH }}" alt="{{ country.TEXT }}" title="{{ country.TEXT }}"> {{ country.TEXT }}</span></td><td headers="allowed" class="center">{{ country.ALLOWED }}</td><td headers="restricted" class="center">{{ country.NOT_ALLOWED }}</td>
+		</tr>
 		{% endfor %}
 		</tbody>
 	</table>
