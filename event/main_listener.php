@@ -213,6 +213,27 @@ class main_listener implements EventSubscriberInterface
 			$request_type = max($request_type, $this_request_type);
 		}
 
+		if ($request_type == constants::ACP_FBC_REQUEST_RESTRICT && $this->config['phpbbservices_filterbycountry_allow_out_of_country_logins'])
+		{
+			// In this condition, you can access the board if you are an actively registered user and are already
+			// logged in, as evidenced by the user_type, which won't be set for normal users and founders unless
+			// you are already logged in. Inactive users and bots are not allowed in. You have to be already logged
+			// in to be annotated as a founder or normal user.
+
+			if ($keep_statistics && in_array($this->user->data['user_type'], array(USER_FOUNDER, USER_NORMAL)))
+			{
+				$this->save_access($request_type, $ignore_bots, $allow, $country_codes);
+				return;
+			}
+
+			// If not logged in, you are at least allowed to access the login page when this setting enabled.
+			if ($keep_statistics && stripos($this->user->page['page'], 'ucp.' . $this->phpEx) === 0 && $this->request->variable('mode', '') == 'login')
+			{
+				$this->save_access($request_type, $ignore_bots, $allow, $country_codes);
+				return;
+			}
+		}
+
 		if ($keep_statistics)
 		{
 			// Log this access
@@ -486,6 +507,10 @@ class main_listener implements EventSubscriberInterface
 				$unapproved_countries[] = $user_ip['country_name'];
 			}
 		}
+		if (count($unapproved_countries) == 0)
+		{
+			$unapproved_countries[] = $this->helper->get_country_name(constants::ACP_FBC_COUNTRY_NOT_FOUND);
+		}
 		return implode(', ', array_unique($unapproved_countries));
 
 	}
@@ -501,6 +526,10 @@ class main_listener implements EventSubscriberInterface
 			{
 				$unapproved_ips[] = $user_ip['ip'];
 			}
+		}
+		if (count($unapproved_ips) == 0)
+		{
+			$unapproved_ips[] = '127.0.0.1';
 		}
 		return implode(', ', array_unique($unapproved_ips));
 

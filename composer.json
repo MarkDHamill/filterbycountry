@@ -3,7 +3,7 @@
     "type": "phpbb-extension",
     "description": "Allows admins to control access by the country code associated with the user's IP",
     "homepage": "https://www.phpbbservices.com",
-    "version": "1.0.14",
+    "version": "1.0.15",
     "time": "2020-07-06",
     "license": "GPL-2.0-only",
     "authors": [
