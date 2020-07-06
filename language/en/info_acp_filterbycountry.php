@@ -38,7 +38,7 @@ $lang = array_merge($lang, array(
 	'ACP_FBC'					=> 'Filter by country',
 	'ACP_FBC_STATS'				=> 'Statistics',
 	'ACP_FBC_STATS_TITLE'		=> 'Filter by country statistics',
-	'ACP_FBC_STATS_TITLE_EXPLAIN'	=> 'This page contains a report of page requests allowed or blocked by country since statistics were last enabled for the extension. Use the up and down arrows to sort the column in either an ascending or descending sequence. Statistics are available since %s only. <strong>If there were no page requests for a country, it is not shown.</strong>',
+	'ACP_FBC_STATS_TITLE_EXPLAIN'	=> 'This page contains a report of page requests allowed or blocked by country since statistics were last enabled for the extension. Use the up and down arrows to sort the column in either an ascending or descending sequence. Statistics are available since %s only. <strong>If there were no page requests for a country, it is not shown.</strong> If you select reset statistics, all statistics will show zero and all rows will be removed from the statistics table.',
 	'ACP_FBC_TITLE'				=> 'Filter by country settings',
 	'ACP_FBC_TITLE_EXPLAIN'		=> 'This extension allows you to filter traffic to your board by country. This product includes GeoLite2 data created by MaxMind, available from <a href="https://www.maxmind.com" target="_blank">https://www.maxmind.com</a>. Its GeoLite2 country database is refreshed every week automatically.',
 	'ACP_FBC_TITLE_SHORT'		=> 'Settings',

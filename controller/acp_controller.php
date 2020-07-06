@@ -88,6 +88,7 @@ class acp_controller
 		// Is the form being submitted to us?
 		if ($this->request->is_set_post('submit'))
 		{
+
 			// Test if the submitted form is valid
 			if (!check_form_key('phpbbservices_filterbycountry_acp'))
 			{
@@ -129,6 +130,10 @@ class acp_controller
 					$ignore_bots = $this->request->variable('phpbbservices_filterbycountry_ignore_bots', 0);
 					$this->config->set('phpbbservices_filterbycountry_ignore_bots', $ignore_bots);
 
+					// Save the seconds setting
+					$seconds = $this->request->variable('phpbbservices_filterbycountry_seconds', 1);
+					$this->config->set('phpbbservices_filterbycountry_seconds', $seconds);
+
 					// Save the test IP setting
 					$test_ip = $this->request->variable('phpbbservices_filterbycountry_test_ip', '');
 					$this->config->set('phpbbservices_filterbycountry_test_ip', $test_ip);
@@ -141,11 +146,8 @@ class acp_controller
 					else
 					{
 						// Remove all statistics if $save_statistics is false
-						$sql = 'DELETE FROM ' . $this->fbc_stats_table;
-						$this->db->sql_query($sql);
-
-						// Also, reset the statistics start date
-						$this->config->set('phpbbservices_filterbycountry_statistics_start_date', 0);
+						$this->reset_statistics();
+						$this->config->set('phpbbservices_filterbycountry_statistics_start_date', 0);	// Make it as if statistics were never collected
 					}
 
 					// Save any selected country codes to the database. To save space they will be saved as a string in the phpbb_config_text table. Since there are hundreds of
@@ -160,6 +162,17 @@ class acp_controller
 					trigger_error($this->language->lang('ACP_FBC_SETTING_SAVED') . adm_back_link($this->u_action));
 				}
 			}
+		}
+
+		if ($this->request->is_set_post('reset_stats'))
+		{
+			// Reset statistics when the Reset stats button is pressed and action is confirmed.
+			$this->reset_statistics();
+
+			// Also set the new "from" time for statistics collection
+			$this->config->set('phpbbservices_filterbycountry_statistics_start_date', time());
+
+			trigger_error($this->language->lang('ACF_FBC_STATS_RESET') . adm_back_link($this->u_action));
 		}
 
 		$s_errors = !empty($errors);
@@ -204,6 +217,7 @@ class acp_controller
 				'FBC_KEEP_STATISTICS'				=> (bool) $this->config['phpbbservices_filterbycountry_keep_statistics'],
 				'FBC_LICENSE_KEY'					=> $this->config['phpbbservices_filterbycountry_license_key'],
 				'FBC_LOG_ACCESS_ERRORS'				=> (bool) $this->config['phpbbservices_filterbycountry_log_access_errors'],
+				'FBC_SECONDS'						=> $this->config['phpbbservices_filterbycountry_seconds'],
 				'FBC_TEST_IP'						=> $this->config['phpbbservices_filterbycountry_test_ip'],
 
 				'S_ERROR'							=> $s_errors,
@@ -350,7 +364,8 @@ class acp_controller
 				{
 
 					// Get allowed and not allowed page requests for each country in the phpbb_fbc_stats table
-					$sql = 'SELECT country_code, sum(allowed) AS allowed_count, sum(not_allowed) AS not_allowed_count
+					$sql = 'SELECT country_code, sum(allowed) AS allowed_count, sum(not_allowed) AS not_allowed_count,
+							sum(outside) AS outside_count
 						FROM ' . $this->fbc_stats_table .
 						$sql_where . '
 						GROUP BY country_code
@@ -372,8 +387,8 @@ class acp_controller
 						}
 					}
 
-					// The $rowset array must be ordered outside of SQL because the country name is localized and is not stored in the database.
-					$sort_by = substr($this->request->variable('sort', 'ca'),0,1);	// c = country name, a = allowed, r = restricted
+					// The $rowset array must be ordered outside of SQL because the country name is language specific and is not stored in the database.
+					$sort_by = substr($this->request->variable('sort', 'ca'),0,1);	// c = country name, a = allowed, r = restricted, o=outside
 					$sort_direction = substr($this->request->variable('sort', 'ca'),1,1); // a = ascending, d = descending
 					$sort_direction = ($sort_direction == 'a') ? SORT_ASC : SORT_DESC;
 
@@ -405,6 +420,15 @@ class acp_controller
 							}
 							array_multisort($not_allowed_count, $sort_direction, SORT_NUMERIC, $country_name, SORT_ASC, $rowset);
 						break;
+
+						case 'o':
+							foreach ($rowset as $key => $row)
+							{
+								$outside_count[$key] = $row['outside_count'];
+								$country_name[$key] = $row['country_name'];
+							}
+							array_multisort($outside_count, $sort_direction, SORT_NUMERIC, $country_name, SORT_ASC, $rowset);
+						break;
 					}
 
 					// Now add all distinct countries to the report
@@ -413,6 +437,7 @@ class acp_controller
 
 						$allowed_count = (int) $row['allowed_count'];
 						$not_allowed_count = (int) $row['not_allowed_count'];
+						$outside_count = (int) $row['outside_count'];
 
 						// Create a row in the report table
 						$flag_path = $this->phpbb_root_path . 'ext/phpbbservices/filterbycountry/flags/' . strtolower($row['country_code']) . '.png';
@@ -421,6 +446,7 @@ class acp_controller
 							'FLAG_PATH'		=> $flag_path,
 							'NOT_ALLOWED'	=> $not_allowed_count,
 							'RESTRICTED'	=> $not_allowed_count,
+							'OUTSIDE'		=> $outside_count,
 							'TEXT'        	=> $row['country_name'],
 						));
 
@@ -454,6 +480,8 @@ class acp_controller
 						'U_FBC_COUNTRY_A_Z'					=> $this->u_action . '&amp;sort=ca',
 						'U_FBC_COUNTRY_ALLOWED_ASC'			=> $this->u_action . '&amp;sort=aa',
 						'U_FBC_COUNTRY_ALLOWED_DESC'		=> $this->u_action . '&amp;sort=az',
+						'U_FBC_COUNTRY_OUTSIDE_ASC'			=> $this->u_action . '&amp;sort=oa',
+						'U_FBC_COUNTRY_OUTSIDE_DESC'		=> $this->u_action . '&amp;sort=oz',
 						'U_FBC_COUNTRY_RESTRICTED_ASC'		=> $this->u_action . '&amp;sort=ra',
 						'U_FBC_COUNTRY_RESTRICTED_DESC'		=> $this->u_action . '&amp;sort=rz',
 						'U_FBC_COUNTRY_Z_A'					=> $this->u_action . '&amp;sort=cz',
@@ -493,5 +521,13 @@ class acp_controller
 	public function set_page_url($u_action)
 	{
 		$this->u_action = $u_action;
+	}
+
+	public function reset_statistics()
+	{
+		// Remove all statistics from the phpbb_fbc_stats table
+
+		$sql = 'DELETE FROM ' . $this->fbc_stats_table;
+		$this->db->sql_query($sql);
 	}
 }

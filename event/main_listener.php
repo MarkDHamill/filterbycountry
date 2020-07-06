@@ -100,19 +100,19 @@ class main_listener implements EventSubscriberInterface
 			return;
 		}
 
-		// Get a list of country codes of interest and place in an array for easy processing
-		$country_codes = explode(',', $this->config_text->get('phpbbservices_filterbycountry_country_codes'));
-		if (count($country_codes) === 0)
-		{
-			// If the administrator hasn't selected any countries to allow or restrict, effectively the extension is disabled.
-			return;
-		}
-
 		// If the license key has not been entered or is not valid, the MaxMind database integration won't work. The
 		// database may not have been downloaded yet. So in this event, the extension is not yet configured properly, in
 		// which case we want to exit this function, allowing all traffic until this is true.
 		if ($this->config['phpbbservices_filterbycountry_license_key_valid'] == 0 || strlen(trim($this->config['phpbbservices_filterbycountry_license_key'])) !== 16)
 		{
+			return;
+		}
+
+		// Get a list of country codes of interest and place in an array for easy processing
+		$country_codes = explode(',', $this->config_text->get('phpbbservices_filterbycountry_country_codes'));
+		if (count($country_codes) === 0)
+		{
+			// If the administrator hasn't selected any countries to allow or restrict, the extension is effectively disabled.
 			return;
 		}
 
@@ -131,27 +131,27 @@ class main_listener implements EventSubscriberInterface
 		// Get ignore bots setting and determine if it should be applied
 		$ignore_bots = (bool) (($this->user->data['user_type'] == USER_IGNORE) && ($this->config['phpbbservices_filterbycountry_ignore_bots'] == 1));
 
-		// Allow (1) or restrict (0) country codes?
+		// Allow a specific set of countries (1) or restrict only certain countries (0)?
 		$allow = (bool) $this->config['phpbbservices_filterbycountry_allow'];
 
 		// Keep statistics?
 		$keep_statistics = (bool) $this->config['phpbbservices_filterbycountry_keep_statistics'];
 
-		// In test mode, the test IP set in the ACP is used. Actual HTTP headers are ignored.
+		// In test mode, the test IP set in the ACP is used. IPs in HTTP headers are ignored.
 		$test_mode = (bool) (trim($this->config['phpbbservices_filterbycountry_test_ip']) !== '');
 
-		// Create an array of candidate IPs for testing
+		// Create an array of candidate IPs for testing. Any valid IPs are placed in the $this->user_ips array along
+		// with the associated country code and country name.
 		$ips_to_test = array();
 		if ($test_mode)
 		{
-			// In test mode, test only the specified test IP
 			$ips_to_test[] = trim($this->config['phpbbservices_filterbycountry_test_ip']);
-			$success = $this->test_ips($ips_to_test);
+			$this->test_ips($ips_to_test);
 		}
 		else
 		{
 			// These HTTP headers contain possible originating IP addresses. REMOTE_ADDR is the one most typically used
-			// and should always be present. Others may be used by CDNs or other special situations.
+			// and should always be present. Others may be used by CDNs or in other special situations.
 			$http_headers =
 				array(
 					'REMOTE_ADDR', 'HTTP_CF_CONNECTING_IP', 'HTTP_CLIENT_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_FORWARDED',
@@ -159,7 +159,7 @@ class main_listener implements EventSubscriberInterface
 					'HTTP_FORWARDED_FOR', 'HTTP_FORWARDED', 'HTTP_COMING_FROM', 'HTTP_VIA',	'X_FORWARDED_FOR'
 				);
 
-			// Examine all potentially relevant HTTP headers and create an array of all originating IP addresses in these headers.
+			// Examine all potentially relevant HTTP headers and create an array of all IP addresses found in these headers.
 			// In most cases only REMOTE_ADDR is present and contains the relevant IP.
 			foreach ($http_headers as $http_header)
 			{
@@ -170,100 +170,126 @@ class main_listener implements EventSubscriberInterface
 					$success = $this->test_ips($ips_to_test);
 					if (!$success)
 					{
-						break;	// A major error has occurred, probably a bad MaxMind database
+						// A major error has occurred, probably a bad MaxMind database. Record the issue. All traffic is
+						// thus allowed until the underlying technical issue is fixed to avoid bringing everything down.
+						$this->log->add(LOG_CRITICAL, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_MAXMIND_ERROR');
+						return;
 					}
 				}
 			}
 		}
 
-		if (!$success)
+		$valid_ips_count = count($this->user_ips);	// Number of valid IP addresses found
+
+		if ($valid_ips_count == 0)
 		{
-			// In the case of a serious error like a corrupt database, we need to log the event. However, we don't want
-			// to disable all access to the board.  All traffic is thus allowed if this occurs by exiting this function.
-			$this->log->add(LOG_CRITICAL, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_MAXMIND_ERROR');
-			return;
+			// No valid IPs were found! This is strange. Let's create a pseudo-IP instead of 0.0.0.0 and assign it to no country.
+			$this->user_ips[$valid_ips_count]['ip'] = '0.0.0.0';
+			$this->user_ips[$valid_ips_count]['country_code'] = constants::ACP_FBC_COUNTRY_NOT_FOUND;
+			$this->user_ips[$valid_ips_count]['country_name'] = $this->helper->get_country_name(constants::ACP_FBC_COUNTRY_NOT_FOUND);    // Add country name to array, for reporting.
 		}
 
-		$index = count($this->user_ips);
+		// The following matrix is used to decide the permission to apply.
+		//
+		// Decision matrix:
+		//
+		// $request_type    Loop $request_type is
+		// was 		    |	Allow (0)		Restrict (1)	Outside (2)
+		// --------------------------------------------------------------
+		// Allow (0)	|	Allow (0)		Restrict (1)	Outside (2)  <-- new request type
+		// Restrict (1)	|	Restrict (1)	Restrict (1)	Outside (2)  <-- new request type
+		// Outside (2)	|	Outside	(2)		Outside (2)		Outside (2)  <-- new request type
 
-		if (count($this->user_ips) == 0)
-		{
-			// No IPs were found! This is strange. Let's create a pseudo-IP instead of 0.0.0.0 and assign it to no country.
-			$this->user_ips[$index]['ip'] = '0.0.0.0';
-			$this->user_ips[$index]['country_code'] = constants::ACP_FBC_COUNTRY_NOT_FOUND;
-			$this->user_ips[$index]['country_name'] = $this->helper->get_country_name(constants::ACP_FBC_COUNTRY_NOT_FOUND);    // Add country name to array, for reporting.
-		}
-
-		$allow_request = true;
-
-		// We have one or more IPs in an array that represent potential countries where the user is coming from. We will
-		// operate in a paranoid mode: if allowed countries is set and any of the countries is not in the list of approved
-		// countries, we reject the request. If not allowed countries is set and any of the countries is on this list,
-		// we reject the request.
+		$request_type = constants::ACP_FBC_REQUEST_ALLOW;	// Allow by default, since it has the lowest value and only a more restrictive permission can be applied.
 
 		foreach ($this->user_ips as $user_ip)
 		{
+			$country_code = $user_ip['country_code'];
+			$ip = $user_ip['ip'];
 
-			if ($allow)	// Allow mode, so IP is llowed only if its country is among the countries desired. Localhost allowed for testing.
-			{
-				$allow_request = $allow_request && (in_array($user_ip['country_code'], $country_codes) || $user_ip['ip'] == '127.0.0.1');
-			}
-			else		// Restrict mode, so IP is allowed if its country is not among the countries desired. Localhost allowed for testing.
-			{
-				$allow_request = $allow_request && (!in_array($user_ip['country_code'], $country_codes) || $user_ip['ip'] == '127.0.0.1');
-			}
+			$this_request_type = $this->test_country($allow, $country_code, $ip, $country_codes);
 
+			// The resulting correct request type for IPs examined so far is simply the highest constant number value
+			$request_type = max($request_type, $this_request_type);
 		}
 
-		if (!$allow_request && $this->config['phpbbservices_filterbycountry_allow_out_of_country_logins'])
-		{
-			// In this condition, you can access the board if you are an actively registered user and are already
-			// logged in, as evidenced by the user_type, which won't be set for normal users and founders unless
-			// you are already logged in. Inactive users and bots are not allowed in. You have to be already logged
-			// in to be annotated as a founder or normal user.
-
-			if ($keep_statistics && in_array($this->user->data['user_type'], array(USER_FOUNDER, USER_NORMAL)))
-			{
-				$this->save_access(true, $ignore_bots);
-				return;
-			}
-
-			// If not logged in, you are at least allowed to access the login page when this setting enabled.
-			if ($keep_statistics && stripos($this->user->page['page'], 'ucp.' . $this->phpEx) === 0 && $this->request->variable('mode', '') == 'login')
-			{
-				$this->save_access(false, $ignore_bots);
-				return;
-			}
-		}
-
-		// This triggers the error letting the user know access is denied. They see forum headers and footers, and the error message.
-		// Any links clicked on should simply continue to deny access, with the possible exception of the login link.
 		if ($keep_statistics)
 		{
-			$this->save_access($allow_request, $ignore_bots);
+			// Log this access
+			$this->save_access($request_type, $ignore_bots, $allow, $country_codes);
 		}
-		if (!$allow_request)
+
+		if ($request_type == constants::ACP_FBC_REQUEST_OUTSIDE || $request_type == constants::ACP_FBC_REQUEST_ALLOW)
 		{
-			// Not allowed to see board content, so present warning message. Provide a login link if allowed.
-			if ((bool) $this->config['phpbbservices_filterbycountry_allow_out_of_country_logins'])
-			{
-				@trigger_error($this->language->lang('ACP_FBC_DENY_ACCESS_LOGIN', $this->get_disallowed_countries($this->user_ips), $this->phpbb_root_path . "ucp.$this->phpEx?mode=login"), E_USER_WARNING);
-			}
-			else
-			{
-				@trigger_error($this->language->lang('ACP_FBC_DENY_ACCESS', $this->get_disallowed_countries($this->user_ips)), E_USER_WARNING);
-			}
+			// In this condition, you can access the board if you are an actively registered user and are already
+			// logged in, or the request is allowed.
+			return;
+		}
+
+		// Not allowed to see board content, so present warning message. Provide a login link if allowed.
+		if ((bool) $this->config['phpbbservices_filterbycountry_allow_out_of_country_logins'])
+		{
+			@trigger_error($this->language->lang('ACP_FBC_DENY_ACCESS_LOGIN', $this->get_disallowed_countries($this->user_ips), $this->phpbb_root_path . "ucp.$this->phpEx?mode=login"), E_USER_WARNING);
+		}
+		else
+		{
+			@trigger_error($this->language->lang('ACP_FBC_DENY_ACCESS', $this->get_disallowed_countries($this->user_ips)), E_USER_WARNING);
 		}
 
 	}
 
-	private function save_access($allow_request, $ignore_bots)
+	private function test_country($allow, $country_code, $ip, $country_codes)
 	{
 
-		// Logs accesses (allowed or restricted) based on content in $this->user_ips array
+		// Returns the request type (allow, restrict, outside)
+		//
+		// $allow - allow or restrict value from the configuration variable
+		// $country_code - the 2 digit ISO country code to test
+		// $ip - IP address
+		// $country_codes - an array of allowed or restricted country codes, from parsing the config text variable
+
+		// This controls the logic that is used when requests should be rejected unless the user is logged in and access
+		// is permitted in this case.
+		$apply_outside = ((bool) $this->config['phpbbservices_filterbycountry_allow_out_of_country_logins']) &&
+			in_array($this->user->data['user_type'], array(USER_FOUNDER, USER_NORMAL));
+
+		if ($allow)	// Only allow in from selected countries
+		{
+			if (in_array($country_code, $country_codes) || $ip == '127.0.0.1')
+			{
+				$this_request_type = constants::ACP_FBC_REQUEST_ALLOW;	// In one of the selected countries, so allow
+			}
+			else
+			{
+				$this_request_type = constants::ACP_FBC_REQUEST_RESTRICT;	// Not in one of the selected countries, so reject
+			}
+		}
+		else	// Only allow in if NOT from selected countries
+		{
+			if (in_array($country_code, $country_codes) || $ip == '127.0.0.1')
+			{
+				// If from one of the selected countries, possibly allow in if they are already logged in
+				$this_request_type = ($apply_outside) ? constants::ACP_FBC_REQUEST_OUTSIDE : constants::ACP_FBC_REQUEST_RESTRICT;
+			}
+			else
+			{
+				$this_request_type = constants::ACP_FBC_REQUEST_ALLOW;	// Not in one of the countries to not let in.
+			}
+		}
+
+		return $this_request_type;
+
+	}
+
+	private function save_access($request_type, $ignore_bots, $allow, $country_codes)
+	{
+
+		// Records type of access (allow, restrict or outside) in the phpbb_fbc_stats table
 		// Parameters:
-		//		$allow_request = flag whether IP is allowed or not
+		//		$request_type = 0 (allow), 1 (restrict) or 2 (outside)
 		//		$ignore_bots = ignore bots settings (true or false)
+		//		$allow = allow/restrict setting on the settings page
+		//		$country_codes = array of allowed or restricted country codes from the settings page
 
 		if ($ignore_bots && $this->user->data['user_type'] === USER_IGNORE)
 		{
@@ -272,34 +298,56 @@ class main_listener implements EventSubscriberInterface
 			return;
 		}
 
-		static $already_called;
-		if (!isset($already_called))
-		{
-			$already_called = false;
-		}
-
-		// We want to ensure this function is only called once by this process, to avoid multiple statistics being recorded
-		if ($already_called)
-		{
-			return;
-		}
-
 		$now = time();
+		$used_countries = array();
 
-		// We need to use a database transaction to ensure counts don't inadvertently change.
+		$seconds = (int) $this->config['phpbbservices_filterbycountry_seconds'];
+
+		// We need to use a database transaction to ensure counts don't inadvertently change and become inconsistent.
 		$this->db->sql_transaction('begin');
 
-		foreach ($this->user_ips as $user_ip)
+		for ($ptr=0; $ptr < count($this->user_ips); $ptr++)
 		{
-			$country_code = $user_ip['country_code'];
+
+			// We want to prevent the same country being counted twice for the process. This can happen if the same
+			// IP address is found in multiple HTTP headers, leading to a SQL error because you are trying to insert
+			// a row that's already there.
+			$country_code = $this->user_ips[$ptr]['country_code'];
+			if (in_array($country_code, $used_countries))
+			{
+				continue;
+			}
+
+			if ($seconds > 0)
+			{
+				// If this country was recently saved (within last x seconds) we don't want to store it again as these
+				// appear to be bogus statistics.
+				$sql_ary = array(
+					'SELECT' => '*',
+					'FROM'   => array(
+						$this->fbc_stats_table => 'fbc',
+					),
+					'WHERE'  => "country_code = '" . $this->db->sql_escape($country_code) . "' AND timestamp >= " . ($now - $seconds),
+				);
+
+				$sql = $this->db->sql_build_query('SELECT', $sql_ary);
+				$result = $this->db->sql_query($sql);
+				$rowset = $this->db->sql_fetchrowset($result);
+				$this->db->sql_freeresult($result);
+				if (count($rowset) > 0)
+				{
+					continue;    // Don't record this statistic. The last one was recorded at too close an interval.
+				}
+			}
 
 			$sql_ary = array(
-				'SELECT'	=> 'allowed, not_allowed',
+				'SELECT'	=> 'allowed, not_allowed, outside',
 				'FROM'		=> array(
 					$this->fbc_stats_table	=> 'fbc',
 				),
 				'WHERE'		=> "country_code = '" . $this->db->sql_escape($country_code) . "' AND timestamp = " . $now,
 			);
+
 			$sql = $this->db->sql_build_query('SELECT', $sql_ary);
 			$result = $this->db->sql_query($sql);
 			$rowset = $this->db->sql_fetchrowset($result);
@@ -310,6 +358,7 @@ class main_listener implements EventSubscriberInterface
 				$update = false;
 				$allowed_value = 0;
 				$not_allowed_value = 0;
+				$outside_value = 0;
 			}
 			else
 			{
@@ -317,25 +366,74 @@ class main_listener implements EventSubscriberInterface
 				$update = true;
 				$allowed_value = (int) $rowset[0]['allowed'];
 				$not_allowed_value = (int) $rowset[0]['not_allowed'];
+				$outside_value = (int) $rowset[0]['outside'];
 			}
 			$this->db->sql_freeresult($result);
 
-			// Increment the allowed and not_allowed column values depending on whether the IP is allowed or not.
-			if ($allow_request)
+			// If there are IPs from multiple countries, we want to store the correct statistic for the applied country.
+			// For example, if we allow in only the Russian Federation but there is also an Australia IP, the net result
+			// is to disallow Australia IP, but we want to correctly note that the Russian Federation IP is allowed.
+
+			if (count($this->user_ips) > 0)
 			{
-				$allowed_value++;
+				if ($allow && in_array($country_code, $country_codes))	// allow
+				{
+					$allowed_value++;
+					$this->user_ips[$ptr]['disallowed'] = 0;
+				}
+				else if (!$allow && !in_array($country_code, $country_codes))	// restrict
+				{
+					$allowed_value++;
+					$this->user_ips[$ptr]['disallowed'] = 0;
+				}
+				else
+				{
+					// Increment the allowed, not_allowed and outside column values
+					if ($request_type === constants::ACP_FBC_REQUEST_ALLOW)
+					{
+						$allowed_value++;
+						$this->user_ips[$ptr]['disallowed'] = 0;
+					}
+					else if ($request_type === constants::ACP_FBC_REQUEST_RESTRICT)
+					{
+						$not_allowed_value++;
+						$this->user_ips[$ptr]['disallowed'] = 1;
+					}
+					else if ($request_type === constants::ACP_FBC_REQUEST_OUTSIDE)
+					{
+						$outside_value++;
+						$this->user_ips[$ptr]['disallowed'] = 0;
+					}
+				}
 			}
 			else
 			{
-				$not_allowed_value++;
+				// Increment the allowed, not_allowed and outside column values
+				if ($request_type === constants::ACP_FBC_REQUEST_ALLOW)
+				{
+					$allowed_value++;
+					$this->user_ips[$ptr]['disallowed'] = 0;
+				}
+				else if ($request_type === constants::ACP_FBC_REQUEST_RESTRICT)
+				{
+					$not_allowed_value++;
+					$this->user_ips[$ptr]['disallowed'] = 1;
+				}
+				else if ($request_type === constants::ACP_FBC_REQUEST_OUTSIDE)
+				{
+					$outside_value++;
+					$this->user_ips[$ptr]['disallowed'] = 0;
+				}
 			}
 
 			// Update the database row if it exists, otherwise queue it for inserting
+			$insert_sql_ary = array();
 			if ($update)
 			{
 				$update_sql_ary = array(
 					'allowed'		=> (int) $allowed_value,
 					'not_allowed'	=> (int) $not_allowed_value,
+					'outside'		=> (int) $outside_value,
 				);
 				$sql = 'UPDATE ' . $this->fbc_stats_table . ' 
 					SET ' . $this->db->sql_build_array('UPDATE', $update_sql_ary) . "
@@ -348,15 +446,18 @@ class main_listener implements EventSubscriberInterface
 					'timestamp'		=> $now,
 					'allowed'		=> (int) $allowed_value,
 					'not_allowed'	=> (int) $not_allowed_value,
+					'outside'		=> (int) $outside_value,
 				);
 			}
 			$this->db->sql_query($sql);
+			$used_countries[] = $this->user_ips[$ptr]['country_code'];
+			next($this->user_ips);
 
 		}
 
 		// Do all insert statements at once for efficiency. Unless there are multiple IPs in various HTTP headers,
 		// there should be no more than one row inserted.
-		if (count($insert_sql_ary) > 0)
+		if (isset($insert_sql_ary) && count($insert_sql_ary) > 0)
 		{
 			$this->db->sql_multi_insert($this->fbc_stats_table, $insert_sql_ary);
 		}
@@ -364,13 +465,10 @@ class main_listener implements EventSubscriberInterface
 		$this->db->sql_transaction('commit');
 
 		// Log the request if logging is enabled. Only restricted attempts are logged.
-		if ($this->config['phpbbservices_filterbycountry_log_access_errors'] && !$allow_request)
+		if ($this->config['phpbbservices_filterbycountry_log_access_errors'] && $request_type === constants::ACP_FBC_REQUEST_RESTRICT)
 		{
 			$this->log->add(LOG_ADMIN, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_BAD_ACCESS', false, array($this->user->data['username'], $this->get_disallowed_ips($this->user_ips), $this->get_disallowed_countries($this->user_ips)));
 		}
-
-		// Note that this function was already called, so don't call it again.
-		$already_called = true;
 
 		return;
 
@@ -383,7 +481,7 @@ class main_listener implements EventSubscriberInterface
 		$unapproved_countries = array();
 		foreach ($user_ips as $user_ip)
 		{
-			if ($user_ip['allowed'] == 0)
+			if ($user_ip['disallowed'] == 1)
 			{
 				$unapproved_countries[] = $user_ip['country_name'];
 			}
@@ -399,7 +497,7 @@ class main_listener implements EventSubscriberInterface
 		$unapproved_ips = array();
 		foreach ($user_ips as $user_ip)
 		{
-			if ($user_ip['allowed'] == 0)
+			if ($user_ip['disallowed'] == 1)
 			{
 				$unapproved_ips[] = $user_ip['ip'];
 			}
@@ -421,13 +519,18 @@ class main_listener implements EventSubscriberInterface
 		if ($possible_ips[0] !== '')    // Array is not empty
 		{
 			$index = 0;
+			$validated_ips = array();
 
 			foreach ($possible_ips as $possible_ip)
 			{
 
 				if (filter_var($possible_ip, FILTER_VALIDATE_IP))	// Invalid IPs are ignored. Many of these odd HTTP headers won't place valid IPs in them.
 				{
-					// Valid IPV4 or IPV6 IP
+					// Reject IP if already in array. This can happen if various HTTP headers carry the same IP.
+					if (in_array($possible_ip, $validated_ips))
+					{
+						continue; // Do next
+					}
 					try
 					{
 						$mmdb_record = $reader->country($possible_ip);      // Fetch record from MaxMind's database. If not there, catch logic is executed.
@@ -460,6 +563,7 @@ class main_listener implements EventSubscriberInterface
 							return false;
 						}
 					}
+					$validated_ips[] = $possible_ip;
 					$index++;
 				}
 			}

@@ -23,6 +23,15 @@
 				dateFormat: 'yy-mm-dd',
 				changeYear: true
 			});
+		$("#reset_stats").on('click',(function() {
+			if (!confirm("{{ lang('ACP_FBC_CONFIRM_STATS_RESET') }}"))
+			{
+				return false;
+			}
+		}));
+		$("#clear").on('click',(function() {
+			$("#phpbbservices_filterbycountry_test_ip").val('');
+		}));
 	});
 </script>
 {% endif %}
