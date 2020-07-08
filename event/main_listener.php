@@ -282,7 +282,8 @@ class main_listener implements EventSubscriberInterface
 			}
 			else
 			{
-				$this_request_type = constants::ACP_FBC_REQUEST_RESTRICT;	// Not in one of the selected countries, so reject
+				// If not from one of the selected countries, possibly allow in if they are already logged in
+				$this_request_type = ($apply_outside) ? constants::ACP_FBC_REQUEST_OUTSIDE : constants::ACP_FBC_REQUEST_RESTRICT;
 			}
 		}
 		else	// Only allow in if NOT from selected countries
@@ -312,10 +313,9 @@ class main_listener implements EventSubscriberInterface
 		//		$allow = allow/restrict setting on the settings page
 		//		$country_codes = array of allowed or restricted country codes from the settings page
 
-		if ($ignore_bots && $this->user->data['user_type'] === USER_IGNORE)
+		if (($this->request->is_ajax()) || ($ignore_bots && $this->user->data['user_type'] === USER_IGNORE))
 		{
-			// Don't capture any bot statistics if this is enabled. This doesn't mean the bot cannot read the page,
-			// only that statistics won't be kept for the bot.
+			// Ajax requests should never be counted. Bots should be ignored too if that setting applies.
 			return;
 		}
 
