@@ -27,7 +27,7 @@
 			<dd>
 				<select id="phpbbservices_filterbycountry_country_codes" name="phpbbservices_filterbycountry_country_codes[]" size="10" multiple>
 					{% for country in loops.country %}
-					<option value="{{ country.CODE }}">{{ country.NAME }}</option>
+					<option value="{{ country.CODE }}">{{ lang('ACP_FBC_COUNTRY_' ~ country.CODE) }}</option>
 					{% endfor %}
 				</select>
 				<br><br><button type="button" id="unselect_options" name="unselect_options">{{ lang('ACP_FBC_UNSELECT_ALL') }}</button>

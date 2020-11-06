@@ -119,7 +119,7 @@ class acp_controller
 					// Save the setting for whether IPs without a known country should be either allowed or restricted
 					$this->config->set('phpbbservices_filterbycountry_ip_not_found_allow', $this->request->variable('phpbbservices_filterbycountry_ip_not_found_allow', 0));
 
-					// Save log setting on whether to log access errors
+					// Save the setting on whether to log access errors
 					$this->config->set('phpbbservices_filterbycountry_log_access_errors', $this->request->variable('phpbbservices_filterbycountry_log_access_errors', 0));
 
 					// Save the keep statistics setting
@@ -227,14 +227,11 @@ class acp_controller
 				'U_ACTION' 							=> $this->u_action,
 			));
 
-			// Populate the options list with a list of countries, in the user's language. Using $this->language->lang
-			// doesn't work with arrays and will return only the last element of the array, so we need to use an
-			// alternative method to get this language variable as an array instead.
-			foreach ($this->user->lang['ACP_FBC_COUNTRIES_LIST'] as $key => $value)
+			// Populate the options list with a list of countries, in the user's language.
+			foreach (constants::FBC_COUNTRY_CODES as $key => $value)
 			{
 				$this->template->assign_block_vars('country', array(
-					'CODE'	=> $key,
-					'NAME'	=> $value
+					'CODE'	=> $value,
 				));
 			}
 
@@ -374,7 +371,6 @@ class acp_controller
 					$rowset = $this->db->sql_fetchrowset($result);
 
 					// Add to $rowset a column representing the textual country name, in the user's language
-					$countries = $this->user->lang['ACP_FBC_COUNTRIES_LIST'];
 					for ($i=0; $i<count($rowset); $i++)
 					{
 						if ($rowset[$i]['country_code'] == constants::ACP_FBC_COUNTRY_NOT_FOUND)
@@ -383,7 +379,7 @@ class acp_controller
 						}
 						else
 						{
-							$rowset[$i]['country_name'] = $countries[$rowset[$i]['country_code']];
+							$rowset[$i]['country_name'] = $this->language->lang('ACP_FBC_COUNTRY_' . $rowset[$i]['country_code']);
 						}
 					}
 

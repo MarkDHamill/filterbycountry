@@ -24,10 +24,8 @@ class update_country_database extends \phpbb\cron\task\base
 
 	public function __construct(\phpbb\config\config $config, \phpbbservices\filterbycountry\core\common $helper)
 	{
-
 		$this->config = $config;
 		$this->helper = $helper;
-
 	}
 
 	/**

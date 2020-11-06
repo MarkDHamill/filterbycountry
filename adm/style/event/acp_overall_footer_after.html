@@ -4,7 +4,7 @@
 {% INCLUDEJS '@phpbbservices_filterbycountry/jquery-ui-1.12.1.min.js' %}
 <script>
 	$( document ).ready(function() {
-		var countryCodes = "{{ COUNTRY_CODES }}";
+		var countryCodes = escape("{{ COUNTRY_CODES }}");
 		var countryCodesArray = encodeURIComponent(countryCodes.split(','));
 		$("#phpbbservices_filterbycountry_country_codes option").each(function() {
 			// Mark options in the country code options selected if they were set previously
@@ -24,7 +24,7 @@
 				changeYear: true
 			});
 		$("#reset_stats").on('click',(function() {
-			if (!confirm("{{ lang('ACP_FBC_CONFIRM_STATS_RESET') }}"))
+			if (!confirm(escape("{{ lang('ACP_FBC_CONFIRM_STATS_RESET') }}")))
 			{
 				return false;
 			}

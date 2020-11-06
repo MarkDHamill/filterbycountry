@@ -10,7 +10,7 @@
 
 namespace phpbbservices\filterbycountry\migrations;
 
-class install_acp_module extends \phpbb\db\migration\migration
+class install_acp_module extends \phpbb\db\migration\container_aware_migration
 {
 
 	public function effectively_installed()
@@ -77,12 +77,9 @@ class install_acp_module extends \phpbb\db\migration\migration
 
 		// Clean up. Remove the extension's filterbycountry directory and the Maxmind database inside it, which likely exists.
 
-		global $phpbb_container;
-		global $phpbb_root_path;
+		$filesystem = $this->container->get('filesystem');
 
-		$filesystem = $phpbb_container->get('filesystem');
-
-		$path = $phpbb_root_path . 'store/phpbbservices/filterbycountry';
+		$path = $this->phpbb_root_path . 'store/phpbbservices/filterbycountry';
 
 		if ($filesystem->exists($path))
 		{

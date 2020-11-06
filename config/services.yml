@@ -15,7 +15,7 @@ services:
             - '@phpbbservices.filterbycountry.common'
             - '@dbal.conn'
             - '@filesystem'
-            - '%core.table_prefix%fbc_stats'
+            - '%phpbbservices.filterbycountry.tables.filterbycountry_table%'
         tags:
             - { name: event.listener }
     phpbbservices.filterbycountry.common:
@@ -43,7 +43,7 @@ services:
             - '%core.root_path%'
             - '%core.php_ext%'
             - '@filesystem'
-            - '%core.table_prefix%fbc_stats'
+            - '%phpbbservices.filterbycountry.tables.filterbycountry_table%'
     phpbbservices.filterbycountry.cron.task.cron_task:
         class: phpbbservices\filterbycountry\cron\task\update_country_database
         arguments:

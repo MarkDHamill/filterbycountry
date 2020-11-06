@@ -42,15 +42,21 @@ class main_module
 		// Load a template from adm/style for our ACP page
 		$this->tpl_name = 'acp_filterbycountry_body';
 
-		// Set the page title for our ACP page
-		$this->page_title = $language->lang('ACP_FBC');
-
-		// Make the $u_action url available in our ACP controller
-		$acp_controller->set_page_url($this->u_action);
-
 		// Get the mode
 		$mode = $request->variable('mode', 'settings');
 
+		// Set the page title for our ACP page
+		if ($mode == 'settings')
+		{
+			$this->page_title = $language->lang('ACP_FBC_TITLE_SHORT');
+		}
+		else if ($mode == 'stats')
+		{
+			$this->page_title = $language->lang('ACP_FBC_STATS');
+		}
+
+		// Make the $u_action url available in our ACP controller
+		$acp_controller->set_page_url($this->u_action);
 		// Load the display options handle in our ACP controller
 		$acp_controller->display_options($mode);
 	}

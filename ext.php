@@ -28,7 +28,7 @@ class ext extends \phpbb\extension\base
 			extension_loaded('curl') &&
 			extension_loaded('dom') &&
 			extension_loaded('Phar') &&
-			is_writable ( $phpbb_root_path . '/store/' )
+			is_writable ( $phpbb_root_path . '/store' )
 		)
 		{
 			// Conditions met to install extension

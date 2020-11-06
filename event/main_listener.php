@@ -132,7 +132,7 @@ class main_listener implements EventSubscriberInterface
 		$ignore_bots = (bool) (($this->user->data['user_type'] == USER_IGNORE) && ($this->config['phpbbservices_filterbycountry_ignore_bots'] == 1));
 
 		// Allow a specific set of countries (1) or restrict only certain countries (0)?
-		$allow = (bool) $this->config['phpbbservices_filterbycountry_allow'];
+		$allow_countries = (bool) $this->config['phpbbservices_filterbycountry_allow'];
 
 		// Keep statistics?
 		$keep_statistics = (bool) $this->config['phpbbservices_filterbycountry_keep_statistics'];
@@ -172,7 +172,7 @@ class main_listener implements EventSubscriberInterface
 					{
 						// A major error has occurred, probably a bad MaxMind database. Record the issue. All traffic is
 						// thus allowed until the underlying technical issue is fixed to avoid bringing everything down.
-						$this->log->add(LOG_CRITICAL, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_MAXMIND_ERROR');
+						$this->log->add('critical', $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_MAXMIND_ERROR');
 						return;
 					}
 				}
@@ -207,7 +207,7 @@ class main_listener implements EventSubscriberInterface
 			$country_code = $user_ip['country_code'];
 			$ip = $user_ip['ip'];
 
-			$this_request_type = $this->test_country($allow, $country_code, $ip, $country_codes);
+			$this_request_type = $this->test_country($allow_countries, $country_code, $ip, $country_codes);
 
 			// The resulting correct request type for IPs examined so far is simply the highest constant number value
 			$request_type = max($request_type, $this_request_type);
@@ -222,14 +222,14 @@ class main_listener implements EventSubscriberInterface
 
 			if ($keep_statistics && in_array($this->user->data['user_type'], array(USER_FOUNDER, USER_NORMAL)))
 			{
-				$this->save_access($request_type, $ignore_bots, $allow, $country_codes);
+				$this->save_access($request_type, $ignore_bots, $allow_countries, $country_codes);
 				return;
 			}
 
 			// If not logged in, you are at least allowed to access the login page when this setting enabled.
 			if ($keep_statistics && stripos($this->user->page['page'], 'ucp.' . $this->phpEx) === 0 && $this->request->variable('mode', '') == 'login')
 			{
-				$this->save_access($request_type, $ignore_bots, $allow, $country_codes);
+				$this->save_access($request_type, $ignore_bots, $allow_countries, $country_codes);
 				return;
 			}
 		}
@@ -237,7 +237,7 @@ class main_listener implements EventSubscriberInterface
 		if ($keep_statistics)
 		{
 			// Log this access
-			$this->save_access($request_type, $ignore_bots, $allow, $country_codes);
+			$this->save_access($request_type, $ignore_bots, $allow_countries, $country_codes);
 		}
 
 		if ($request_type == constants::ACP_FBC_REQUEST_OUTSIDE || $request_type == constants::ACP_FBC_REQUEST_ALLOW)
@@ -259,12 +259,12 @@ class main_listener implements EventSubscriberInterface
 
 	}
 
-	private function test_country($allow, $country_code, $ip, $country_codes)
+	private function test_country($allow_countries, $country_code, $ip, $country_codes)
 	{
 
 		// Returns the request type (allow, restrict, outside)
 		//
-		// $allow - allow or restrict value from the configuration variable
+		// $allow_countries - allow or restrict value from the configuration variable
 		// $country_code - the 2 digit ISO country code to test
 		// $ip - IP address
 		// $country_codes - an array of allowed or restricted country codes, from parsing the config text variable
@@ -274,7 +274,7 @@ class main_listener implements EventSubscriberInterface
 		$apply_outside = ((bool) $this->config['phpbbservices_filterbycountry_allow_out_of_country_logins']) &&
 			in_array($this->user->data['user_type'], array(USER_FOUNDER, USER_NORMAL));
 
-		if ($allow)	// Only allow in from selected countries
+		if ($allow_countries)	// Only allow in from selected countries
 		{
 			if (in_array($country_code, $country_codes) || $ip == '127.0.0.1')
 			{
@@ -303,14 +303,14 @@ class main_listener implements EventSubscriberInterface
 
 	}
 
-	private function save_access($request_type, $ignore_bots, $allow, $country_codes)
+	private function save_access($request_type, $ignore_bots, $allow_countries, $country_codes)
 	{
 
 		// Records type of access (allow, restrict or outside) in the phpbb_fbc_stats table
 		// Parameters:
 		//		$request_type = 0 (allow), 1 (restrict) or 2 (outside)
 		//		$ignore_bots = ignore bots settings (true or false)
-		//		$allow = allow/restrict setting on the settings page
+		//		$allow_countries = allow/restrict setting on the settings page
 		//		$country_codes = array of allowed or restricted country codes from the settings page
 
 		if (($this->request->is_ajax()) || ($ignore_bots && $this->user->data['user_type'] === USER_IGNORE))
@@ -397,12 +397,12 @@ class main_listener implements EventSubscriberInterface
 
 			if (count($this->user_ips) > 0)
 			{
-				if ($allow && in_array($country_code, $country_codes))	// allow
+				if ($allow_countries && in_array($country_code, $country_codes))	// allow
 				{
 					$allowed_value++;
 					$this->user_ips[$ptr]['disallowed'] = 0;
 				}
-				else if (!$allow && !in_array($country_code, $country_codes))	// restrict
+				else if (!$allow_countries && !in_array($country_code, $country_codes))	// restrict
 				{
 					$allowed_value++;
 					$this->user_ips[$ptr]['disallowed'] = 0;
@@ -480,6 +480,10 @@ class main_listener implements EventSubscriberInterface
 		// there should be no more than one row inserted.
 		if (isset($insert_sql_ary) && count($insert_sql_ary) > 0)
 		{
+			if (count($insert_sql_ary) > 1)
+			{
+				$insert_sql_ary = $this->fix_duplicate_key_inserts($insert_sql_ary);
+			}
 			$this->db->sql_multi_insert($this->fbc_stats_table, $insert_sql_ary);
 		}
 
@@ -488,10 +492,48 @@ class main_listener implements EventSubscriberInterface
 		// Log the request if logging is enabled. Only restricted attempts are logged.
 		if ($this->config['phpbbservices_filterbycountry_log_access_errors'] && $request_type === constants::ACP_FBC_REQUEST_RESTRICT)
 		{
-			$this->log->add(LOG_ADMIN, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_BAD_ACCESS', false, array($this->user->data['username'], $this->get_disallowed_ips($this->user_ips), $this->get_disallowed_countries($this->user_ips)));
+			$this->log->add('admin', $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_BAD_ACCESS', false, array($this->user->data['username'], $this->get_disallowed_ips($this->user_ips), $this->get_disallowed_countries($this->user_ips)));
 		}
 
 		return;
+
+	}
+
+	private function fix_duplicate_key_inserts($insert_ary)
+	{
+
+		// This function prevents a potential duplicate key error occurring on a SQL insert into the phpbb_fbc_stats table
+		// by aggregating allowed, not allowed and outside counts into a single row as necessary.
+
+		$cleaned_ary = array();
+		foreach ($insert_ary as $insert_row)
+		{
+			$found_match = false;
+			$index = 0;
+			foreach ($cleaned_ary as $cleaned_row)
+			{
+				if ($insert_row['country_code'] == $cleaned_row['country_code'] &&
+					$insert_row['timestamp'] == $cleaned_row['timestamp'])
+				{
+					$found_match = true;
+					$cleaned_ary[$index]['allowed'] = $cleaned_ary[$index]['allowed'] + $insert_row['allowed'];
+					$cleaned_ary[$index]['not_allowed'] = $cleaned_ary[$index]['not_allowed'] + $insert_row['not_allowed'];
+					$cleaned_ary[$index]['outside'] = $cleaned_ary[$index]['outside'] + $insert_row['outside'];
+					$index++;
+				}
+			}
+			if (!$found_match)
+			{
+				$cleaned_ary[] = array(
+					'country_code'	=> $insert_row['country_code'],
+					'timestamp'		=> $insert_row['timestamp'],
+					'allowed'		=> $insert_row['allowed'],
+					'not_allowed'	=> $insert_row['not_allowed'],
+					'outside'		=> $insert_row['outside']
+				);
+			}
+		}
+		return $cleaned_ary;
 
 	}
 
@@ -511,7 +553,7 @@ class main_listener implements EventSubscriberInterface
 		{
 			$unapproved_countries[] = $this->helper->get_country_name(constants::ACP_FBC_COUNTRY_NOT_FOUND);
 		}
-		return implode(', ', array_unique($unapproved_countries));
+		return implode($this->language->lang('COMMA_SEPARATOR'), array_unique($unapproved_countries));
 
 	}
 
@@ -531,7 +573,7 @@ class main_listener implements EventSubscriberInterface
 		{
 			$unapproved_ips[] = '127.0.0.1';
 		}
-		return implode(', ', array_unique($unapproved_ips));
+		return implode($this->language->lang('COMMA_SEPARATOR'), array_unique($unapproved_ips));
 
 	}
 

@@ -58,7 +58,7 @@ class common
 		// Parameters:
 		//   $update_database - if true, database is destroyed and recreated, done if called by a cron
 
-		// If on the ACP settings page, we return true, otherwise, the screen can't come up to enter a new or corrected license key.
+		// If on the ACP settings page, we return true, otherwise the screen can't come up to enter a new or corrected license key.
 		// This page does not need to use the database.
 		$mode = $this->request->variable('mode', 'settings');
 		if (defined('ADMIN_START') && $mode == 'settings')
@@ -256,7 +256,7 @@ class common
 		// Gets the name of the country in the user's language. What's returned by MaxMind is the country's name in English.
 		$this->language->add_lang('common', 'phpbbservices/filterbycountry');
 
-		$country_name = (array_key_exists($country_code, $this->user->lang['ACP_FBC_COUNTRIES_LIST'])) ? $this->user->lang['ACP_FBC_COUNTRIES_LIST'][$country_code] : $this->language->lang('ACP_FBC_UNKNOWN');
+		$country_name = (isset($this->user->lang['ACP_FBC_COUNTRY_' . $country_code])) ? $this->user->lang['ACP_FBC_COUNTRY_' . $country_code] : $this->language->lang('ACP_FBC_UNKNOWN');
 
 		return $country_name;
 
