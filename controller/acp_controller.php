@@ -134,6 +134,10 @@ class acp_controller
 					$seconds = $this->request->variable('phpbbservices_filterbycountry_seconds', 1);
 					$this->config->set('phpbbservices_filterbycountry_seconds', $seconds);
 
+					// Save the redirect URI setting
+					$redirect_uri = $this->request->variable('phpbbservices_filterbycountry_redirect_uri', '');
+					$this->config->set('phpbbservices_filterbycountry_redirect_uri', $redirect_uri);
+
 					// Save the test IP setting
 					$test_ip = $this->request->variable('phpbbservices_filterbycountry_test_ip', '');
 					$this->config->set('phpbbservices_filterbycountry_test_ip', $test_ip);
@@ -217,6 +221,7 @@ class acp_controller
 				'FBC_KEEP_STATISTICS'				=> (bool) $this->config['phpbbservices_filterbycountry_keep_statistics'],
 				'FBC_LICENSE_KEY'					=> $this->config['phpbbservices_filterbycountry_license_key'],
 				'FBC_LOG_ACCESS_ERRORS'				=> (bool) $this->config['phpbbservices_filterbycountry_log_access_errors'],
+				'FBC_REDIRECT_URI'					=> $this->config['phpbbservices_filterbycountry_redirect_uri'],
 				'FBC_SECONDS'						=> $this->config['phpbbservices_filterbycountry_seconds'],
 				'FBC_TEST_IP'						=> $this->config['phpbbservices_filterbycountry_test_ip'],
 

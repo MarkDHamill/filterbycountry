@@ -254,6 +254,10 @@ class main_listener implements EventSubscriberInterface
 		}
 		else
 		{
+			if (trim($this->config['phpbbservices_filterbycountry_redirect_uri']) !== '')
+			{
+				redirect($this->config['phpbbservices_filterbycountry_redirect_uri']);
+			}
 			@trigger_error($this->language->lang('ACP_FBC_DENY_ACCESS', $this->get_disallowed_countries($this->user_ips)), E_USER_WARNING);
 		}
 
@@ -276,7 +280,7 @@ class main_listener implements EventSubscriberInterface
 
 		if ($allow_countries)	// Only allow in from selected countries
 		{
-			if (in_array($country_code, $country_codes) || $ip == '127.0.0.1')
+			if (in_array($country_code, $country_codes))
 			{
 				$this_request_type = constants::ACP_FBC_REQUEST_ALLOW;	// In one of the selected countries, so allow
 			}
@@ -288,7 +292,7 @@ class main_listener implements EventSubscriberInterface
 		}
 		else	// Only allow in if NOT from selected countries
 		{
-			if (in_array($country_code, $country_codes) || $ip == '127.0.0.1')
+			if (in_array($country_code, $country_codes))
 			{
 				// If from one of the selected countries, possibly allow in if they are already logged in
 				$this_request_type = ($apply_outside) ? constants::ACP_FBC_REQUEST_OUTSIDE : constants::ACP_FBC_REQUEST_RESTRICT;
@@ -490,7 +494,7 @@ class main_listener implements EventSubscriberInterface
 		$this->db->sql_transaction('commit');
 
 		// Log the request if logging is enabled. Only restricted attempts are logged.
-		if ($this->config['phpbbservices_filterbycountry_log_access_errors'] && $request_type === constants::ACP_FBC_REQUEST_RESTRICT)
+		if ($this->config['phpbbservices_filterbycountry_log_access_errors'] && $request_type === constants::ACP_FBC_REQUEST_RESTRICT && count($this->user_ips) > 0)
 		{
 			$this->log->add('admin', $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_BAD_ACCESS', false, array($this->user->data['username'], $this->get_disallowed_ips($this->user_ips), $this->get_disallowed_countries($this->user_ips)));
 		}
@@ -516,9 +520,9 @@ class main_listener implements EventSubscriberInterface
 					$insert_row['timestamp'] == $cleaned_row['timestamp'])
 				{
 					$found_match = true;
-					$cleaned_ary[$index]['allowed'] = $cleaned_ary[$index]['allowed'] + $insert_row['allowed'];
-					$cleaned_ary[$index]['not_allowed'] = $cleaned_ary[$index]['not_allowed'] + $insert_row['not_allowed'];
-					$cleaned_ary[$index]['outside'] = $cleaned_ary[$index]['outside'] + $insert_row['outside'];
+					$cleaned_ary[$index]['allowed'] += $insert_row['allowed'];
+					$cleaned_ary[$index]['not_allowed'] += $insert_row['not_allowed'];
+					$cleaned_ary[$index]['outside']+= $insert_row['outside'];
 					$index++;
 				}
 			}
@@ -568,10 +572,6 @@ class main_listener implements EventSubscriberInterface
 			{
 				$unapproved_ips[] = $user_ip['ip'];
 			}
-		}
-		if (count($unapproved_ips) == 0)
-		{
-			$unapproved_ips[] = '127.0.0.1';
 		}
 		return implode($this->language->lang('COMMA_SEPARATOR'), array_unique($unapproved_ips));
 

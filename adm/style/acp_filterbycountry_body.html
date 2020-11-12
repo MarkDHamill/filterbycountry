@@ -58,6 +58,11 @@
 			<dd><input type="number" id="phpbbservices_filterbycountry_seconds" name="phpbbservices_filterbycountry_seconds" value="{{ FBC_SECONDS }}" min="0" />			</dd>
 		</dl>
 		<dl>
+			<dt><label for="phpbbservices_filterbycountry_redirect_uri">{{ lang('ACP_FBC_REDIRECT_URI') ~ lang('COLON') }}</label><br>{{ lang('ACP_FBC_REDIRECT_URI_EXPLAIN') }}</dt>
+			<dd><input type="url" maxlength="255" size="40" id="phpbbservices_filterbycountry_redirect_uri" name="phpbbservices_filterbycountry_redirect_uri" value="{{ FBC_REDIRECT_URI }}" min="0" />
+			</dd>
+		</dl>
+		<dl>
 			<dt><label for="phpbbservices_filterbycountry_test_ip">{{ lang('ACP_FBC_TEST_IP') ~ lang('COLON') }}</label><br>{{ lang('ACP_FBC_TEST_IP_EXPLAIN') }}</dt>
 			<dd><input type="text" id="phpbbservices_filterbycountry_test_ip" name="phpbbservices_filterbycountry_test_ip" value="{{ FBC_TEST_IP }}" maxlength="39" size="20"/> <button type="button" name="clear" id="clear">{{ lang('ACP_FBC_CLEAR_FIELD') }}</button>
 			</dd>
