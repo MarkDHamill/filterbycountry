@@ -4,8 +4,8 @@
 {% INCLUDEJS '@phpbbservices_filterbycountry/jquery-ui-1.12.1.min.js' %}
 <script>
 	$( document ).ready(function() {
-		var countryCodes = escape("{{ COUNTRY_CODES }}");
-		var countryCodesArray = encodeURIComponent(countryCodes.split(','));
+		var countryCodes = decodeURIComponent("{{ COUNTRY_CODES }}");
+		var countryCodesArray = countryCodes.split(',');
 		$("#phpbbservices_filterbycountry_country_codes option").each(function() {
 			// Mark options in the country code options selected if they were set previously
 			if (countryCodesArray.indexOf($(this).val()) != -1) {

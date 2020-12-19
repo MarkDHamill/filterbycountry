@@ -212,7 +212,7 @@ class acp_controller
 			}
 
 			$this->template->assign_vars(array(
-				'COUNTRY_CODES' 					=> $this->config_text->get('phpbbservices_filterbycountry_country_codes'),	// Processed by the Javascript
+				'COUNTRY_CODES' 					=> urlencode($this->config_text->get('phpbbservices_filterbycountry_country_codes')),	// Processed by the Javascript
 				'ERROR_MSG'     					=> $s_errors ? implode('<br>', $errors) : '',
 				'FBC_ALLOW_OUT_OF_COUNTRY_LOGINS'	=> (bool) $this->config['phpbbservices_filterbycountry_allow_out_of_country_logins'],
 				'FBC_ALLOW_RESTRICT'				=> (bool) $this->config['phpbbservices_filterbycountry_allow'],

@@ -30,7 +30,7 @@ class constants {
 	const ACP_FBC_REQUEST_RESTRICT = 1;
 	const ACP_FBC_REQUEST_OUTSIDE = 2;
 
-	const FBC_COUNTRY_CODES = ['AF','AX','AF','AX','AL','DZ','AS','AD','AO','AI','AQ','AG','AR','AM','AW','AU','AT','AZ',
+	const FBC_COUNTRY_CODES = ['AF','AX','AL','DZ','AS','AD','AO','AI','AQ','AG','AR','AM','AW','AU','AT','AZ',
 							'BS','BH','BD','BB','BY','BE','BZ','BJ','BM','BT','BO','BQ','BA','BW','BV','BR','IO','BN',
 							'BG','BF','BI','KH','CM','CA','CV','KY','CF','TD','CL','CN','CX','CC','CO','KM','CG','CD',
 							'CK','CR','CI','HR','CU','CW','CY','CZ','DK','DJ','DM','DO','EC','EG','SV','GQ','ER','EE',

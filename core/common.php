@@ -88,7 +88,7 @@ class common
 			catch (\Exception $e)
 			{
 				// Report error
-				$this->phpbb_log->add(LOG_CRITICAL, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_DELETE_ERROR', false, array($extension_store_directory));
+				$this->phpbb_log->add('critical', $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_DELETE_ERROR', false, array($extension_store_directory));
 				return false;
 			}
 		}
@@ -103,7 +103,7 @@ class common
 			catch (\Exception $e)
 			{
 				// Report error
-				$this->phpbb_log->add(LOG_CRITICAL, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_DELETE_ERROR', false, array($extension_store_directory));
+				$this->phpbb_log->add('critical', $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_DELETE_ERROR', false, array($extension_store_directory));
 				return false;
 			}
 		}
@@ -112,7 +112,7 @@ class common
 		if (!$this->filesystem->is_readable($extension_store_directory ))
 		{
 			// Report error
-			$this->phpbb_log->add(LOG_CRITICAL, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_READ_FILE_ERROR', false, array($extension_store_directory));
+			$this->phpbb_log->add('critical', $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_READ_FILE_ERROR', false, array($extension_store_directory));
 			return false;
 		}
 
@@ -120,7 +120,7 @@ class common
 		if (!$this->filesystem->is_writable($extension_store_directory ))
 		{
 			// Report error
-			$this->phpbb_log->add(LOG_CRITICAL, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_WRITE_FILE_ERROR', false, array($extension_store_directory));
+			$this->phpbb_log->add('critical', $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_WRITE_FILE_ERROR', false, array($extension_store_directory));
 			return false;
 		}
 
@@ -129,7 +129,7 @@ class common
 		$fp = fopen($database_gz_file_path, 'w+');
 		if (!$fp)
 		{
-			$this->phpbb_log->add(LOG_CRITICAL, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_FOPEN_ERROR', false, array($database_gz_file_path));
+			$this->phpbb_log->add('critical', $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_FOPEN_ERROR', false, array($database_gz_file_path));
 			return false;
 		}
 
@@ -143,7 +143,7 @@ class common
 		$success = curl_exec($ch);
 		if (!$success)
 		{
-			$this->phpbb_log->add(LOG_CRITICAL, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_FOPEN_ERROR', false, array($database_gz_file_path));
+			$this->phpbb_log->add('critical', $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_FOPEN_ERROR', false, array($database_gz_file_path));
 			return false;
 		}
 
@@ -167,7 +167,7 @@ class common
 		// If the database was fetched successfully or hasn't changed -- that's good. Otherwise, it's bad so we need to capture this and do more error handling.
 		if (!($status_code == 200 || $status_code == 304))
 		{
-			$this->phpbb_log->add(LOG_CRITICAL, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_HTTP_ERROR', false, array($status_code));
+			$this->phpbb_log->add('critical', $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_HTTP_ERROR', false, array($status_code));
 			return false;
 		}
 
@@ -188,7 +188,7 @@ class common
 		catch (\Exception $e)
 		{
 			// Extract failed, most likely because the .gz file is not in a valid .gz format
-			$this->phpbb_log->add(LOG_CRITICAL, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_EXTRACT_ERROR', false, array($database_gz_file_path, $extension_store_directory, $e->getCode()));
+			$this->phpbb_log->add('critical', $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_EXTRACT_ERROR', false, array($database_gz_file_path, $extension_store_directory, $e->getCode()));
 			return false;
 		}
 
@@ -215,7 +215,7 @@ class common
 		if (!$found_directory)
 		{
 			// No directory was found inside store/phpbbservices/filterbycountry, which is weird, so it's an error to be handled.
-			$this->phpbb_log->add(LOG_CRITICAL, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_TARBALL_MOVE_ERROR', false, array($tarball_dir .'/GeoLite2-Country.mmdb'));
+			$this->phpbb_log->add('critical', $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_TARBALL_MOVE_ERROR', false, array($tarball_dir .'/GeoLite2-Country.mmdb'));
 			return false;
 		}
 
@@ -236,7 +236,7 @@ class common
 					catch (\Exception $e)
 					{
 						// Report error
-						$this->phpbb_log->add(LOG_CRITICAL, $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_DELETE_ERROR', false, array($extension_store_directory . '/' . $file));
+						$this->phpbb_log->add('critical', $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_DELETE_ERROR', false, array($extension_store_directory . '/' . $file));
 						return false;
 					}
 				}
