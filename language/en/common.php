@@ -334,7 +334,7 @@ $lang = array_merge($lang, array(
 	'ACP_FBC_LAST_TWO_WEEKS'			=> 'In Last 14 Days',
 	'ACP_FBC_LAST_WEEK'					=> 'In Last 7 Days',
 	'ACP_FBC_LICENSE_KEY'				=> 'MaxMind license key',
-	'ACP_FBC_LICENSE_KEY_EXPLAIN'		=> 'To use MaxMind’s GeoLite2 country code database, you must <a href="https://dev.maxmind.com/geoip/geoip2/geolite2/" target="_blank">acquire a license key</a>. You do <em>not</em> need to purchase a license. Enter the 16 character license key here. You must register on their site to acquire a license key.',
+	'ACP_FBC_LICENSE_KEY_EXPLAIN'		=> 'To use MaxMind’s GeoLite2 country code database, you must <a href="https://dev.maxmind.com/geoip/geoip2/geolite2/" target="_blank">acquire a license key</a>. You do <em>not</em> need to purchase a license. Enter the 40 character license key here. You must register on their site to acquire a license key. Field must be exactly 40 characters, has a [a-zA-Z0-9] to [a-zA-Z0-9_] pattern and an _mmk suffix',
 	'ACP_FBC_LOG_ACCESS_ERRORS'			=> 'Log access errors',
 	'ACP_FBC_LOG_ACCESS_ERRORS_EXPLAIN'	=> 'If yes, any restricted IPs are logged in the admin log. This can result in very long logs.',
 	'ACP_FBC_MAXMIND_ERROR'				=> 'A call to the MaxMind country code database triggered an error. The database is most likely corrupt. You might want to inform the webmaster.',

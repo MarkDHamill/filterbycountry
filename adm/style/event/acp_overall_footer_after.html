@@ -1,7 +1,7 @@
 {% if S_INCLUDE_FBC_JS %}
 {% if not definition.INCLUDED_JQUERYUI1121JS %}
-{% DEFINE INCLUDED_JQUERYUI1121JS = true %}
-{% INCLUDEJS '@phpbbservices_filterbycountry/jquery-ui-1.12.1.min.js' %}
+{% DEFINE INCLUDED_JQUERYUI1131JS = true %}
+{% INCLUDEJS '@phpbbservices_filterbycountry/jquery-ui.min.js' %}
 <script>
 	$( document ).ready(function() {
 		var countryCodes = decodeURIComponent("{{ COUNTRY_CODES }}");

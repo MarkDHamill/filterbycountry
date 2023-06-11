@@ -105,7 +105,7 @@ class acp_controller
 			// If no errors, process the form data
 			if (empty($errors))
 			{
-				if ($mode == 'settings')
+				if ($mode === 'settings')
 				{
 					// Save the setting for the license key
 					$this->config->set('phpbbservices_filterbycountry_license_key', $this->request->variable('phpbbservices_filterbycountry_license_key', ''));
@@ -124,19 +124,16 @@ class acp_controller
 
 					// Save the keep statistics setting
 					$save_statistics = $this->request->variable('phpbbservices_filterbycountry_keep_statistics', 0);
-					$this->config->set('phpbbservices_filterbycountry_keep_statistics', $save_statistics);
+					$this->config->set('phpbbservices_filterbycountry_keep_statistics', $this->request->variable('phpbbservices_filterbycountry_keep_statistics', 0));
 
 					// Save the ignore bots setting
-					$ignore_bots = $this->request->variable('phpbbservices_filterbycountry_ignore_bots', 0);
-					$this->config->set('phpbbservices_filterbycountry_ignore_bots', $ignore_bots);
+					$this->config->set('phpbbservices_filterbycountry_ignore_bots', $this->request->variable('phpbbservices_filterbycountry_ignore_bots', 0));
 
 					// Save the seconds setting
-					$seconds = $this->request->variable('phpbbservices_filterbycountry_seconds', 1);
-					$this->config->set('phpbbservices_filterbycountry_seconds', $seconds);
+					$this->config->set('phpbbservices_filterbycountry_seconds', $this->request->variable('phpbbservices_filterbycountry_seconds', 1));
 
 					// Save the redirect URI setting
-					$redirect_uri = $this->request->variable('phpbbservices_filterbycountry_redirect_uri', '');
-					$this->config->set('phpbbservices_filterbycountry_redirect_uri', $redirect_uri);
+					$this->config->set('phpbbservices_filterbycountry_redirect_uri', $this->request->variable('phpbbservices_filterbycountry_redirect_uri', ''));
 
 					// Save the test IP setting
 					$test_ip = $this->request->variable('phpbbservices_filterbycountry_test_ip', '');
@@ -185,7 +182,7 @@ class acp_controller
 		// If it doesn't, the function will create the directory and populate it, if it can. But make sure the license key is valid
 		// before doing this, otherwise an error will occur.
 
-		if ($this->config['phpbbservices_filterbycountry_license_key_valid'] == 1 && strlen(trim($this->config['phpbbservices_filterbycountry_license_key'])) == 16)
+		if ($this->config['phpbbservices_filterbycountry_license_key_valid'] == 1 && strlen(trim($this->config['phpbbservices_filterbycountry_license_key'])) == 40)
 		{
 			$database_mmdb_file_path = $this->phpbb_root_path . 'store/phpbbservices/filterbycountry/GeoLite2-Country.mmdb';
 			if (!$this->filesystem->exists($database_mmdb_file_path))
@@ -205,7 +202,7 @@ class acp_controller
 
 			// Populate the settings page fields
 
-			if ($this->config['phpbbservices_filterbycountry_license_key_valid'] == 0 || strlen(trim($this->config['phpbbservices_filterbycountry_license_key'])) !== 16)
+			if ($this->config['phpbbservices_filterbycountry_license_key_valid'] == 0 || strlen(trim($this->config['phpbbservices_filterbycountry_license_key'])) !== 40)
 			{
 				$errors[] = $this->language->lang('ACP_FBC_INVALID_LICENSE_KEY');
 				$s_errors = true;
@@ -222,7 +219,7 @@ class acp_controller
 				'FBC_LICENSE_KEY'					=> $this->config['phpbbservices_filterbycountry_license_key'],
 				'FBC_LOG_ACCESS_ERRORS'				=> (bool) $this->config['phpbbservices_filterbycountry_log_access_errors'],
 				'FBC_REDIRECT_URI'					=> $this->config['phpbbservices_filterbycountry_redirect_uri'],
-				'FBC_SECONDS'						=> $this->config['phpbbservices_filterbycountry_seconds'],
+				'FBC_SECONDS'						=> (int) $this->config['phpbbservices_filterbycountry_seconds'],
 				'FBC_TEST_IP'						=> $this->config['phpbbservices_filterbycountry_test_ip'],
 
 				'S_ERROR'							=> $s_errors,
@@ -446,7 +443,6 @@ class acp_controller
 							'ALLOWED'		=> $allowed_count,
 							'FLAG_PATH'		=> $flag_path,
 							'NOT_ALLOWED'	=> $not_allowed_count,
-							'RESTRICTED'	=> $not_allowed_count,
 							'OUTSIDE'		=> $outside_count,
 							'TEXT'        	=> $row['country_name'],
 						));

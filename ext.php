@@ -42,7 +42,7 @@ class ext extends \phpbb\extension\base
 			$message = $language->lang('ACP_FBC_REQUIREMENTS');
 			trigger_error($message, $message_type);
 			return false;
-		};
+		}
 
 	}
 

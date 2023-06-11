@@ -15,7 +15,7 @@
 		<legend>{{ lang('SETTINGS') }}</legend>
 		<dl>
 			<dt><label>{{ lang('ACP_FBC_LICENSE_KEY') ~ lang('COLON') }}</label><br>{{ lang('ACP_FBC_LICENSE_KEY_EXPLAIN') }}</dt>
-			<dd><label><input id="phpbbservices_filterbycountry_license_key" name="phpbbservices_filterbycountry_license_key" size="16" maxlength="16" type="text" value="{{ FBC_LICENSE_KEY }}"></label>
+			<dd><label><input id="phpbbservices_filterbycountry_license_key" name="phpbbservices_filterbycountry_license_key" minlength="40" required type="text" value="{{ FBC_LICENSE_KEY }}"></label>
 		</dl>
 		<dl>
 			<dt><label>{{ lang('ACP_FBC_ALLOW_RESTRICT') ~ lang('COLON') }}</label><br>{{ lang('ACP_FBC_ALLOW_RESTRICT_EXPLAIN') }}</dt>

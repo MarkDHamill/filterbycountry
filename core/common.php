@@ -66,8 +66,8 @@ class common
 			return true;
 		}
 
-		// If the license key is blank or not 16 characters, the database should not be downloaded, so exit this function.
-		if (strlen(trim($this->config['phpbbservices_filterbycountry_license_key'])) !== 16)
+		// If the license key is blank or not 40 characters, the database should not be downloaded, so exit this function.
+		if (strlen(trim($this->config['phpbbservices_filterbycountry_license_key'])) !== 40)
 		{
 			return false;
 		}
@@ -188,7 +188,7 @@ class common
 		catch (\Exception $e)
 		{
 			// Extract failed, most likely because the .gz file is not in a valid .gz format
-			$this->phpbb_log->add('critical', $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_EXTRACT_ERROR', false, array($database_gz_file_path, $extension_store_directory, $e->getCode()));
+			$this->phpbb_log->add('critical', $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_EXTRACT_ERROR', false, array($database_gz_file_path, $extension_store_directory, $e->getMessage()));
 			return false;
 		}
 

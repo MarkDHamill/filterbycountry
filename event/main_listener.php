@@ -103,7 +103,7 @@ class main_listener implements EventSubscriberInterface
 		// If the license key has not been entered or is not valid, the MaxMind database integration won't work. The
 		// database may not have been downloaded yet. So in this event, the extension is not yet configured properly, in
 		// which case we want to exit this function, allowing all traffic until this is true.
-		if ($this->config['phpbbservices_filterbycountry_license_key_valid'] == 0 || strlen(trim($this->config['phpbbservices_filterbycountry_license_key'])) !== 16)
+		if ($this->config['phpbbservices_filterbycountry_license_key_valid'] == 0 || strlen(trim($this->config['phpbbservices_filterbycountry_license_key'])) !== 40)
 		{
 			return;
 		}
@@ -359,6 +359,7 @@ class main_listener implements EventSubscriberInterface
 				$result = $this->db->sql_query($sql);
 				$rowset = $this->db->sql_fetchrowset($result);
 				$this->db->sql_freeresult($result);
+
 				if (count($rowset) > 0)
 				{
 					continue;    // Don't record this statistic. The last one was recorded at too close an interval.
@@ -452,7 +453,6 @@ class main_listener implements EventSubscriberInterface
 			}
 
 			// Update the database row if it exists, otherwise queue it for inserting
-			$insert_sql_ary = array();
 			if ($update)
 			{
 				$update_sql_ary = array(
@@ -622,7 +622,8 @@ class main_listener implements EventSubscriberInterface
 					}
 					catch (\Exception $e)
 					{
-						if ($e->getCode() == 'AddressNotFoundException')
+						// Test if the IP was not found in the database, which can happen for localhost and possibly elsewhere.
+						if (preg_match('*The address (25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3} is not in the database.*',$e->getMessage()))
 						{
 							$this->user_ips[$index]['ip'] = $possible_ip;
 							$this->user_ips[$index]['country_code'] = constants::ACP_FBC_COUNTRY_NOT_FOUND;
