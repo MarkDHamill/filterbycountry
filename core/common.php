@@ -137,7 +137,8 @@ class common
 		$ch = curl_init();
 		curl_setopt($ch, CURLOPT_URL, $maxmind_db_url);	// Fetch using this URL
 		curl_setopt($ch, CURLOPT_HEADER, 0);		// MaxMind server doesn't need HTTP headers
-		curl_setopt($ch, CURLOPT_FILE, $fp);				// Write file here
+		curl_setopt($ch, CURLOPT_FILE, $fp);		// Write file here
+		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);	// Follows redirection due to MaxMind update using R2
 
 		// Get the database over the internet and write it to a file
 		$success = curl_exec($ch);
