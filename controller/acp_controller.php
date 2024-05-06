@@ -102,6 +102,10 @@ class acp_controller
 				$errors[] = $this->language->lang('ACP_FBC_TEST_IP_BAD');
 			}
 
+			// Get time limit control values for the page
+			$date_start = trim($this->request->variable('date_start', '')); // Format: yyyy-mm-dd
+			$date_end = trim($this->request->variable('date_end', '')); // Format: yyyy-mm-dd
+
 			// If no errors, process the form data
 			if (empty($errors))
 			{
@@ -201,6 +205,7 @@ class acp_controller
 		{
 
 			// Populate the settings page fields
+			$range = $this->request->variable('range', constants::ACP_FBC_NO_LIMIT_VALUE);
 
 			if ($this->config['phpbbservices_filterbycountry_license_key_valid'] == 0 || strlen(trim($this->config['phpbbservices_filterbycountry_license_key'])) !== 40)
 			{
@@ -222,6 +227,18 @@ class acp_controller
 				'FBC_SECONDS'						=> (int) $this->config['phpbbservices_filterbycountry_seconds'],
 				'FBC_TEST_IP'						=> $this->config['phpbbservices_filterbycountry_test_ip'],
 
+				'S_ACP_FBC_NO_LIMIT_SELECTED'		=> ($range == constants::ACP_FBC_NO_LIMIT_VALUE) ? 'selected' : '',
+				'S_ACP_FBC_LAST_QUARTER_VALUE' 		=> ($range == constants::ACP_FBC_LAST_QUARTER_VALUE) ? 'selected' : '',
+				'S_ACP_FBC_LAST_MONTH_VALUE' 		=> ($range == constants::ACP_FBC_LAST_MONTH_VALUE) ? 'selected' : '',
+				'S_ACP_FBC_LAST_TWO_WEEKS_VALUE' 	=> ($range == constants::ACP_FBC_LAST_TWO_WEEKS_VALUE) ? 'selected' : '',
+				'S_ACP_FBC_LAST_WEEK_VALUE' 		=> ($range == constants::ACP_FBC_LAST_WEEK_VALUE) ? 'selected' : '',
+				'S_ACP_FBC_LAST_DAY_VALUE' 			=> ($range == constants::ACP_FBC_LAST_WEEK_VALUE) ? 'selected' : '',
+				'S_ACP_FBC_LAST_12_HOURS_VALUE' 	=> ($range == constants::ACP_FBC_LAST_12_HOURS_VALUE) ? 'selected' : '',
+				'S_ACP_FBC_LAST_6_HOURS_VALUE' 		=> ($range == constants::ACP_FBC_LAST_6_HOURS_VALUE) ? 'selected' : '',
+				'S_ACP_FBC_LAST_3_HOURS_VALUE'		=> ($range == constants::ACP_FBC_LAST_3_HOURS_VALUE) ? 'selected' : '',
+				'S_ACP_FBC_LAST_1_HOURS_VALUE'		=> ($range == constants::ACP_FBC_LAST_1_HOURS_VALUE) ? 'selected' : '',
+				'S_ACP_FBC_LAST_30_MINUTES_VALUE' 	=> ($range == constants::ACP_FBC_LAST_WEEK_VALUE) ? 'selected' : '',
+				'S_ACP_FBC_LAST_15_MINUTES_VALUE' 	=> ($range == constants::ACP_FBC_LAST_WEEK_VALUE) ? 'selected' : '',
 				'S_ERROR'							=> $s_errors,
 				'S_INCLUDE_FBC_JS'					=> true,
 				'S_SETTINGS'						=> true,
@@ -243,15 +260,15 @@ class acp_controller
 
 			// Populate the statistics page fields
 
+
 			if ((bool) $this->config['phpbbservices_filterbycountry_keep_statistics'])
 			{
 
-				// Get time limit control values for the page
+				// Start absolute date range logic
 				$range = $this->request->variable('range', constants::ACP_FBC_NO_LIMIT_VALUE);
 				$date_start = trim($this->request->variable('date_start', '')); // Format: yyyy-mm-dd
 				$date_end = trim($this->request->variable('date_end', '')); // Format: yyyy-mm-dd
 
-				// Start absolute date range logic
 				if ($date_start !== '' && $date_end !== '')
 				{
 					// Since $date_end will render a timestamp for midnight (00:00:00) let's take it to the end of the day (23:59:59)

@@ -71,19 +71,19 @@
 		<h2>{{ lang('ACP_FBC_CURRENT_RANGE') ~ lang('COLON') }} {{ CURRENT_RANGE }}</h2>
 		<br>
 	<label for="range">{{ lang('ACP_FBC_CHANGE_REPORT_RANGE') ~ lang('COLON') }}</label>
-	<select name="range" id="range" >
-		<option value="{{ S_ACP_FBC_NO_LIMIT_VALUE }}">{{ lang('ACP_FBC_NO_LIMIT') }}</option>
-		<option value="{{ S_ACP_FBC_LAST_QUARTER_VALUE }}">{{ lang('ACP_FBC_LAST_QUARTER') }}</option>
-		<option value="{{ S_ACP_FBC_LAST_MONTH_VALUE }}">{{ lang('ACP_FBC_LAST_MONTH') }}</option>
-		<option value="{{ S_ACP_FBC_LAST_TWO_WEEKS_VALUE }}">{{ lang('ACP_FBC_LAST_TWO_WEEKS') }}</option>
-		<option value="{{ S_ACP_FBC_LAST_WEEK_VALUE }}">{{ lang('ACP_FBC_LAST_WEEK') }}</option>
-		<option value="{{ S_ACP_FBC_LAST_DAY_VALUE }}">{{ lang('ACP_FBC_LAST_DAY') }}</option>
-		<option value="{{ S_ACP_FBC_LAST_12_HOURS_VALUE }}">{{ lang('ACP_FBC_LAST_12_HOURS') }}</option>
-		<option value="{{ S_ACP_FBC_LAST_6_HOURS_VALUE }}">{{ lang('ACP_FBC_LAST_6_HOURS') }}</option>
-		<option value="{{ S_ACP_FBC_LAST_3_HOURS_VALUE }}">{{ lang('ACP_FBC_LAST_3_HOURS') }}</option>
-		<option value="{{ S_ACP_FBC_LAST_1_HOURS_VALUE }}">{{ lang('ACP_FBC_LAST_1_HOURS') }}</option>
-		<option value="{{ S_ACP_FBC_LAST_30_MINUTES_VALUE }}">{{ lang('ACP_FBC_LAST_30_MINUTES') }}</option>
-		<option value="{{ S_ACP_FBC_LAST_15_MINUTES_VALUE }}">{{ lang('ACP_FBC_LAST_15_MINUTES') }}</option>
+	<select name="range" id="range">
+		<option value="{{ S_ACP_FBC_NO_LIMIT_VALUE }}" {{ 'S_ACP_FBC_NO_LIMIT_SELECTED' }}> {{ lang('ACP_FBC_NO_LIMIT') }} </option>
+		<option value="{{ S_ACP_FBC_LAST_QUARTER_VALUE }}" {{ 'S_ACP_FBC_LAST_QUARTER_SELECTED' }} >{{ lang('ACP_FBC_LAST_QUARTER') }}</option>
+		<option value="{{ S_ACP_FBC_LAST_MONTH_VALUE }}" {{ 'S_ACP_FBC_LAST_MONTH' }} {{ lang('ACP_FBC_LAST_MONTH') }}</option>
+		<option value="{{ S_ACP_FBC_LAST_TWO_WEEK_VALUE }}" {{ 'S_ACP_FBC_LAST_TWO_WEEKS' }} {{ lang('ACP_FBC_LAST_TWO_WEEK') }}</option>
+		<option value="{{ S_ACP_FBC_LAST_WEEK_VALUE }}">{{ 'S_ACP_FBC_LAST_WEEK' }}{{ lang('ACP_FBC_LAST_WEEK') }}</option>
+		<option value="{{ S_ACP_FBC_LAST_DAY_VALUE }}">{{ 'S_ACP_FBC_LAST_DAY' }}{{ lang('ACP_FBC_LAST_DAY_VALUE') }}</option>
+		<option value="{{ S_ACP_FBC_LAST_12_HOURS_VALUE }}">{{ 'S_ACP_FBC_12_HOURS' }}{{ lang('ACP_FBC_LAST_12_HOURS') }}{{ lang('ACP_FBC_LAST_12_HOURS_SELECTED') }}</option>
+		<option value="{{ S_ACP_FBC_LAST_6_HOURS_VALUE }}">{{ 'S_ACP_FBC_6_HOURS' }}{{ lang('ACP_FBC_LAST_6_HOURS') }}</option>
+		<option value="{{ S_ACP_FBC_LAST_3_HOURS_VALUE }}">{{ 'S_ACP_FBC_3_HOURS' }}{{ lang('ACP_FBC_LAST_3_HOURS') }}</option>
+		<option value="{{ S_ACP_FBC_LAST_1_HOURS_VALUE }}">{{ 'S_ACP_FBC_1_HOURS' }}{{ lang('ACP_FBC_LAST_1_HOURS') }}</option>
+		<option value="{{ S_ACP_FBC_LAST_30_MINUTES_VALUE }}">{{ 'S_ACP_FBC_LAST_30_MINUTES' }}{{ lang('ACP_FBC_LAST_30_MINUTES') }}</option>
+		<option value="{{ S_ACP_FBC_LAST_15_MINUTES_VALUE }}">{{ 'S_ACP_FBC_LAST_15_MINUTES' }}{{ lang('ACP_FBC_LAST_15_MINUTES') }}</option>
 	</select>
 	<p>{{ lang('ACP_FBC_RANGE_EXPLAIN') }}</p>
 	<label for="date_start">{{ lang('ACP_FBC_DATES_BEGINNING') ~ lang('COLON') }}</label> <input id="date_start" name="date_start" type="text" placeholder="{{ lang('ACP_FBC_PLACEHOLDER') }}" size="10" maxlength="10" readonly> <label for="date_end">{{ lang('ACP_FBC_DATES_ENDING') ~ lang('COLON') }}</label> <input id="date_end" name="date_end" type="text" placeholder="{{ lang('ACP_FBC_PLACEHOLDER') }}" size="10" maxlength="10" readonly><br>

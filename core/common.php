@@ -137,6 +137,11 @@ class common
 		$ch = curl_init();
 		curl_setopt($ch, CURLOPT_URL, $maxmind_db_url);	// Fetch using this URL
 		curl_setopt($ch, CURLOPT_HEADER, 0);		// MaxMind server doesn't need HTTP headers
+
+		// See this topic to better understand the following code https://www.phpbb.com/customise/db/extension/filterbycountry/support/topic/246766
+		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);	// If an HTTP 304 is received, follow the redirect
+		curl_setopt($ch, CURLOPT_POSTREDIR, 2);	// A bitmask of 1 (301 Moved Permanently), 2 (302 Found) and 4 (303 See Other) if the HTTP POST method
+		curl_setopt($ch, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_FILE | CURLPROTO_HTTPS );
 		curl_setopt($ch, CURLOPT_FILE, $fp);				// Write file here
 
 		// Get the database over the internet and write it to a file
@@ -150,7 +155,7 @@ class common
 		// Get the HTTP status code
 		$status_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
-		// Handle unauthorized fetches of the database. MaxMind returns a HTTP 401 (unauthorized) in this event.
+		// Handle unauthorized fetches of the database. MaxMind returns an HTTP 401 (unauthorized) in this event.
 		if ($status_code == 401)
 		{
 			// The license key is bad. Mark that it is invalid.
@@ -164,7 +169,7 @@ class common
 			return ($mode == 'settings') ? true : false;
 		}
 
-		// If the database was fetched successfully or hasn't changed -- that's good. Otherwise, it's bad so we need to capture this and do more error handling.
+		// If the database was fetched successfully or hasn't changed -- that's good. Otherwise, it's bad, so we need to capture this and do more error handling.
 		if (!($status_code == 200 || $status_code == 304))
 		{
 			$this->phpbb_log->add('critical', $this->user->data['user_id'], $this->user->ip, 'LOG_ACP_FBC_HTTP_ERROR', false, array($status_code));

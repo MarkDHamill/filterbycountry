@@ -102,8 +102,9 @@ class main_listener implements EventSubscriberInterface
 
 		// If the license key has not been entered or is not valid, the MaxMind database integration won't work. The
 		// database may not have been downloaded yet. So in this event, the extension is not yet configured properly, in
-		// which case we want to exit this function, allowing all traffic until this is true.
-		if ($this->config['phpbbservices_filterbycountry_license_key_valid'] == 0 || strlen(trim($this->config['phpbbservices_filterbycountry_license_key'])) !== 120)
+		// which case we want to exit this function, allowing all traffic until this is true. Also, the new key size is
+		// at least 40 characters.
+		if ($this->config['phpbbservices_filterbycountry_license_key_valid'] == 0 || strlen(trim($this->config['phpbbservices_filterbycountry_license_key'])) >= 40)
 		{
 			return;
 		}
